@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 
 namespace NativeOrchestrator.Tests;
@@ -118,6 +119,10 @@ public sealed class SagaTestHost : IAsyncDisposable
     await RunDueAsync();
     return await Client.GetAsync(sagaId) ?? throw new InvalidOperationException($"Saga {sagaId} doesn't exist.");
   }
+
+  /// <summary>Starts every schedule occurrence due now, as the scheduler does when it wakes; returns when it would wake next.</summary>
+  public Task<DateTimeOffset> RunSchedulesAsync() =>
+    _services.GetServices<IHostedService>().OfType<SagaScheduler>().Single().RunDueAsync(CancellationToken.None);
 
   public ValueTask DisposeAsync() => _services.DisposeAsync();
 

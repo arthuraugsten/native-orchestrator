@@ -10,6 +10,9 @@ internal interface ISagaRuntime
 {
   string Name { get; }
 
+  /// <summary>The saga's data type.</summary>
+  Type DataType { get; }
+
   IReadOnlyList<StepDefinition> Steps { get; }
 
   StepDefinition? FindStep(string name);

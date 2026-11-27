@@ -30,6 +30,8 @@ internal sealed class SagaRuntime<TSaga, TData> : ISagaRuntime
 
   public string Name { get; }
 
+  public Type DataType => typeof(TData);
+
   public IReadOnlyList<StepDefinition> Steps { get; }
 
   public StepDefinition? FindStep(string name) => _stepsByName.GetValueOrDefault(name);

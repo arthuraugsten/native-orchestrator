@@ -12,7 +12,7 @@ public sealed class SagaWorkerTests
     script.Check["Wait"] = context => context.CheckCount >= 2 ? PollResult.Succeeded() : PollResult.Pending();
     await using var provider = CreateServices(script, workerEnabled: true);
     var client = provider.GetRequiredService<ISagaClient>();
-    var worker = provider.GetServices<IHostedService>().Single();
+    var worker = provider.GetServices<IHostedService>().OfType<SagaWorker>().Single();
 
     await worker.StartAsync(TestContext.Current.CancellationToken);
     try
@@ -45,7 +45,7 @@ public sealed class SagaWorkerTests
     var script = new Script();
     await using var provider = CreateServices(script, workerEnabled: false);
     var client = provider.GetRequiredService<ISagaClient>();
-    var worker = provider.GetServices<IHostedService>().Single();
+    var worker = provider.GetServices<IHostedService>().OfType<SagaWorker>().Single();
 
     await worker.StartAsync(TestContext.Current.CancellationToken);
     var id = (await client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken)).SagaId;

@@ -20,6 +20,13 @@ builder.Services.AddNativeOrchestrator(configuration.GetSection("NativeOrchestra
   .AddSaga<CustomerOnboardingSaga, CustomerOnboardingData>(CustomerOnboardingSaga.Name)
   // One report run at a time: a start while one is active (or failed, awaiting manual action) answers 409.
   .AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name, saga => saga.SingleInstance = true)
+  // The daily sales report at 02:00 UTC. "NativeOrchestrator:Schedules:nightly-sales" can change the CRON expression,
+  // time zone or misfire threshold, or pause it; Development runs it every 2 minutes.
+  .AddSchedule("nightly-sales", ReportGenerationSaga.Name, "0 2 * * *", occurrence => new ReportGenerationData
+  {
+    ReportName = $"Daily sales {occurrence.ScheduledAtUtc.AddDays(-1):yyyy-MM-dd}",
+    Recipients = ["finance@example.test"],
+  })
   .UseSqlServer(
     configuration.GetSection("NativeOrchestrator:SqlServer"),
     sql => sql.ConnectionString = configuration.GetConnectionString("Sagas") ?? "")

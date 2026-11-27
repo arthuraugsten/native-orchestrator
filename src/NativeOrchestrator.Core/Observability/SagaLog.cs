@@ -58,4 +58,28 @@ internal static partial class SagaLog
 
   [LoggerMessage(41, LogLevel.Error, "The completion hook of saga {SagaId} ({SagaType}) failed")]
   public static partial void HookFailed(ILogger logger, Exception exception, Guid sagaId, string sagaType);
+
+  [LoggerMessage(50, LogLevel.Information, "Saga scheduler started with {Count} schedules")]
+  public static partial void SchedulerStarted(ILogger logger, int count);
+
+  [LoggerMessage(51, LogLevel.Information, "Saga scheduler is disabled (NativeOrchestrator:WorkerEnabled is false)")]
+  public static partial void SchedulerDisabled(ILogger logger);
+
+  [LoggerMessage(52, LogLevel.Information, "Schedule {ScheduleName} started saga {SagaId} for {ScheduledAtUtc:O}")]
+  public static partial void OccurrenceStarted(ILogger logger, string scheduleName, Guid sagaId, DateTimeOffset scheduledAtUtc);
+
+  [LoggerMessage(53, LogLevel.Debug, "Schedule {ScheduleName} occurrence {ScheduledAtUtc:O} was already started (saga {SagaId})")]
+  public static partial void OccurrenceDuplicate(ILogger logger, string scheduleName, DateTimeOffset scheduledAtUtc, Guid sagaId);
+
+  [LoggerMessage(54, LogLevel.Warning, "Schedule {ScheduleName} skipped {ScheduledAtUtc:O}: saga {SagaId} of the single-instance saga is still active or failed")]
+  public static partial void OccurrenceSkipped(ILogger logger, string scheduleName, DateTimeOffset scheduledAtUtc, Guid sagaId);
+
+  [LoggerMessage(55, LogLevel.Warning, "Schedule {ScheduleName} missed {Count} occurrences (later than its misfire threshold of {Threshold}, or superseded by a later one)")]
+  public static partial void OccurrencesMisfired(ILogger logger, string scheduleName, int count, TimeSpan threshold);
+
+  [LoggerMessage(56, LogLevel.Error, "Schedule {ScheduleName} failed to start {ScheduledAtUtc:O}; trying again in {Delay}")]
+  public static partial void OccurrenceFailed(ILogger logger, Exception exception, string scheduleName, DateTimeOffset scheduledAtUtc, TimeSpan delay);
+
+  [LoggerMessage(57, LogLevel.Error, "Schedule {ScheduleName} couldn't create valid data for {ScheduledAtUtc:O}; the occurrence is skipped")]
+  public static partial void OccurrenceRejected(ILogger logger, Exception exception, string scheduleName, DateTimeOffset scheduledAtUtc);
 }

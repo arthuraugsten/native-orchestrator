@@ -12,6 +12,7 @@ internal sealed class SagaDiagnostics : IDisposable
   private readonly Counter<long> _steps;
   private readonly Histogram<double> _stepDuration;
   private readonly Counter<long> _finished;
+  private readonly Counter<long> _occurrences;
 
   public SagaDiagnostics(IMeterFactory? meterFactory = null)
   {
@@ -19,6 +20,7 @@ internal sealed class SagaDiagnostics : IDisposable
     _steps = _meter.CreateCounter<long>("nativeorchestrator.steps", description: "Step runs, by outcome.");
     _stepDuration = _meter.CreateHistogram<double>("nativeorchestrator.step.duration", "ms", "How long one step run took.");
     _finished = _meter.CreateCounter<long>("nativeorchestrator.sagas.finished", description: "Sagas that finished, by status.");
+    _occurrences = _meter.CreateCounter<long>("nativeorchestrator.schedule.occurrences", description: "Schedule occurrences, by outcome.");
   }
 
   public static Activity? StartRun(SagaRecord saga)
@@ -44,6 +46,9 @@ internal sealed class SagaDiagnostics : IDisposable
 
   public void RecordFinished(string sagaType, SagaStatus status) =>
     _finished.Add(1, new TagList { { "saga.type", sagaType }, { "status", status.ToString() } });
+
+  public void RecordOccurrences(string scheduleName, ScheduleOutcome outcome, int count = 1) =>
+    _occurrences.Add(count, new TagList { { "schedule.name", scheduleName }, { "outcome", outcome.ToString() } });
 
   public void Dispose() => _meter.Dispose();
 }

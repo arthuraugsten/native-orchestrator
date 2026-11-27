@@ -131,6 +131,36 @@ public sealed class SqlServerIntegrationTests
   }
 
   [Fact]
+  public async Task Instances_that_fire_the_same_occurrence_at_once_start_one_saga()
+  {
+    var connectionString = await _fixture.CreateDatabaseAsync();
+    var hosts = new List<SagaTestHost>();
+    try
+    {
+      for (var i = 0; i < 4; i++)
+      {
+        var host = SagaTestHost.Create(
+          new SagaShape().Step("A"),
+          useStore: builder => builder.UseSqlServer(o => o.ConnectionString = connectionString),
+          configureOrchestrator: builder => builder.AddSchedule("hourly", SagaTestHost.SagaType, "0 * * * *", _ => new TestData()));
+        host.Time.SetUtcNow(SagaTestHost.Start.AddHours(1));
+        hosts.Add(host);
+      }
+
+      await Task.WhenAll(hosts.Select(h => h.RunSchedulesAsync()));
+    }
+    finally
+    {
+      foreach (var host in hosts)
+        await host.DisposeAsync();
+    }
+
+    await using var context = SqlServerFixture.CreateContext(connectionString);
+    var correlationIds = await context.Sagas.AsNoTracking().Select(s => s.CorrelationId).ToListAsync(TestContext.Current.CancellationToken);
+    Assert.Equal(["schedule:hourly:20260101T010000Z"], correlationIds);
+  }
+
+  [Fact]
   public async Task The_database_initializer_applies_migrations_when_asked_to()
   {
     var connectionString = (await _fixture.CreateDatabaseAsync()).Replace("saga_", "fresh_", StringComparison.Ordinal);
