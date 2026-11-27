@@ -12,7 +12,9 @@ internal sealed record EffectiveStepOptions(
   public static EffectiveStepOptions Resolve(SagaOptions saga, StepDefinition step)
   {
     saga.Steps.TryGetValue(step.Name, out var configured);
+
     var code = step.Options;
+
     return new EffectiveStepOptions(
       configured?.Timeout ?? code.Timeout ?? saga.StepTimeout,
       configured?.ExecutionTimeout ?? code.ExecutionTimeout ?? saga.ExecutionTimeout,

@@ -124,6 +124,7 @@ update [`docs/index.html`](docs/index.html) in the same change (rule 12).
   Positional records are fine.
 - Private fields `_camelCase`, never `this.`. Private static fields and constants PascalCase.
 - One-line guard clauses have no braces.
+- A blank line after a block's closing brace before the next statement (IDE2003).
 - One type per file (private nested types and test helpers excepted).
 - Public members of the libraries have XML docs (`GenerateDocumentationFile`).
 - Validate public arguments with `ArgumentNullException.ThrowIfNull` / `ArgumentException.ThrowIfNullOrWhiteSpace`.

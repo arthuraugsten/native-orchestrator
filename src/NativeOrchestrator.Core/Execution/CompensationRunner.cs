@@ -26,11 +26,13 @@ internal sealed class CompensationRunner
   {
     var saga = run.Saga;
     var step = LatestSucceededStep(saga);
+
     if (step is null)
       return RunOutcome.Done;
 
     saga.NextRunAtUtc = run.Now;
     var definition = run.Runtime.FindStep(step.Name);
+
     if (definition is null)
     {
       MarkFailed(run, step, $"Step '{step.Name}' is no longer declared by saga '{saga.SagaType}', so it can't be compensated.");
@@ -49,9 +51,12 @@ internal sealed class CompensationRunner
     if (error is null)
     {
       _diagnostics.RecordStep(saga.SagaType, step.Name, "compensated", elapsed);
+
       step.Status = StepStatus.Compensated;
       step.CompensationAttempt = 0;
+
       run.Record(SagaEventType.StepCompensated, step.Name);
+
       return RunOutcome.Continue;
     }
 
@@ -63,6 +68,7 @@ internal sealed class CompensationRunner
     var decision = error is StepFailedException
       ? RetryDecision.Stop
       : _retryPolicy.Evaluate(new RetryContext(saga.SagaType, step.Name, step.CompensationAttempt, error, options.CompensationRetry, true));
+
     if (decision.ShouldRetry)
     {
       run.Record(SagaEventType.CompensationRetryScheduled, step.Name, run.Truncate($"Attempt {step.CompensationAttempt} failed: {error.Message}"));
@@ -89,7 +95,9 @@ internal sealed class CompensationRunner
   {
     step.Status = StepStatus.CompensationFailed;
     step.Error = run.Truncate(error);
+
     run.Record(SagaEventType.StepCompensationFailed, step.Name, step.Error);
+
     SagaLog.CompensationFailed(_logger, step.Name, run.Saga.Id);
   }
 

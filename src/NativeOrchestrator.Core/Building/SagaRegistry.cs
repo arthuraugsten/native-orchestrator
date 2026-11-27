@@ -16,6 +16,7 @@ internal sealed class SagaRegistry
     {
       if (_runtimes.ContainsKey(registration.Name))
         throw new InvalidOperationException($"Two sagas are registered as '{registration.Name}'. Give each AddSaga call a different name.");
+
       _runtimes.Add(registration.Name, registration.CreateRuntime(services));
     }
   }

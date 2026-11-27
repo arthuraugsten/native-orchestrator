@@ -20,10 +20,12 @@ public sealed class PublishReportStep : HttpSagaStep<ReportGenerationData>
     foreach (var recipient in data.Recipients)
     {
       var email = new EmailRequest(recipient, $"Report ready: {data.ReportName}", $"Download it from {data.DownloadUrl}.");
+
       using var request = new HttpRequestMessage(HttpMethod.Post, "email")
       {
         Content = JsonContent.Create(email, AppJsonContext.Default.EmailRequest),
       };
+
       using var response = await SendAsync(request, context, cancellationToken);
     }
 

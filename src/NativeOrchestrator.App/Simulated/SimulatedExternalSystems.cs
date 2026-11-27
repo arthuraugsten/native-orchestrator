@@ -36,7 +36,9 @@ public sealed class SimulatedExternalSystems
     _accountsByKey.GetOrAdd(idempotencyKey, _ =>
     {
       var account = new Account($"acc-{Guid.NewGuid():N}"[..12], request.CustomerName, request.Email);
+
       _accounts[account.Id] = account;
+
       return account;
     });
 
@@ -48,7 +50,9 @@ public sealed class SimulatedExternalSystems
     _verificationsByKey.GetOrAdd(idempotencyKey, _ =>
     {
       var verification = new Verification($"ver-{Guid.NewGuid():N}"[..12], request.CustomerName, _timeProvider.GetUtcNow());
+
       _verifications[verification.Id] = verification;
+
       return verification;
     });
 
@@ -57,10 +61,13 @@ public sealed class SimulatedExternalSystems
   {
     if (!_verifications.TryGetValue(id, out var verification))
       return null;
+
     var name = verification.CustomerName;
+
     if (name.Contains(SimulatedTriggers.SlowCustomer, StringComparison.OrdinalIgnoreCase)
       || _timeProvider.GetUtcNow() - verification.StartedAtUtc < _options.IdentityCheckDuration)
       return new VerificationResponse(id, "pending", null);
+
     return name.Contains(SimulatedTriggers.RejectedCustomer, StringComparison.OrdinalIgnoreCase)
       ? new VerificationResponse(id, "rejected", "The identity document doesn't match the customer.")
       : new VerificationResponse(id, "approved", null);
@@ -70,7 +77,9 @@ public sealed class SimulatedExternalSystems
     _reportsByKey.GetOrAdd(idempotencyKey, _ =>
     {
       var report = new Report($"rep-{Guid.NewGuid():N}"[..12], request.Name, TimeSpan.FromSeconds(request.DurationSeconds), _timeProvider.GetUtcNow());
+
       _reports[report.Id] = report;
+
       return report;
     });
 
@@ -79,8 +88,10 @@ public sealed class SimulatedExternalSystems
   {
     if (!_reports.TryGetValue(id, out var report))
       return null;
+
     if (_timeProvider.GetUtcNow() - report.StartedAtUtc < report.Duration)
       return new ReportResponse(id, "running", null, null);
+
     return report.Name.StartsWith(SimulatedTriggers.FailingReportPrefix, StringComparison.OrdinalIgnoreCase)
       ? new ReportResponse(id, "failed", null, "The report query timed out on the warehouse.")
       : new ReportResponse(id, "succeeded", $"{baseUrl}/simulated/reports/{id}/file", null);

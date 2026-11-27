@@ -17,14 +17,19 @@ public sealed class ReserveAccountStep : HttpSagaStep<CustomerOnboardingData>
   public override async Task<StepResult> ExecuteAsync(StepContext<CustomerOnboardingData> context, CancellationToken cancellationToken)
   {
     var data = context.Data;
+
     using var request = new HttpRequestMessage(HttpMethod.Post, "accounts")
     {
       Content = JsonContent.Create(new CreateAccountRequest(data.CustomerName, data.Email), AppJsonContext.Default.CreateAccountRequest),
     };
+
     using var response = await SendAsync(request, context, cancellationToken);
+
     var account = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.AccountResponse, cancellationToken)
       ?? throw new InvalidOperationException("The accounts API returned no body.");
+
     data.AccountId = account.AccountId;
+
     return StepResult.Success();
   }
 
@@ -32,6 +37,7 @@ public sealed class ReserveAccountStep : HttpSagaStep<CustomerOnboardingData>
   {
     if (context.Data.AccountId is not { } accountId)
       return;
+
     using var request = new HttpRequestMessage(HttpMethod.Delete, $"accounts/{Uri.EscapeDataString(accountId)}");
     using var response = await SendAsync(request, context, cancellationToken);
   }

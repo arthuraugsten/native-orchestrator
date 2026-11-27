@@ -36,22 +36,29 @@ internal sealed class SagaClient : ISagaClient
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(sagaType);
     ArgumentNullException.ThrowIfNull(data);
+
     var runtime = _registry.Get(sagaType);
+
     using var scope = _scopes.CreateScope();
+
     return CreateAsync(sagaType, runtime.PrepareData(data, scope.ServiceProvider), correlationId, cancellationToken);
   }
 
   public Task<SagaStartResult> StartAsync(string sagaType, JsonElement data, string? correlationId = null, CancellationToken cancellationToken = default)
   {
     ArgumentException.ThrowIfNullOrWhiteSpace(sagaType);
+
     var runtime = _registry.Get(sagaType);
+
     using var scope = _scopes.CreateScope();
+
     return CreateAsync(sagaType, runtime.PrepareData(data, scope.ServiceProvider), correlationId, cancellationToken);
   }
 
   public async Task<SagaSnapshot?> GetAsync(Guid sagaId, CancellationToken cancellationToken = default)
   {
     var saga = await _repository.GetAsync(sagaId, cancellationToken).ConfigureAwait(false);
+
     return saga is null ? null : ToSnapshot(saga);
   }
 
@@ -61,8 +68,10 @@ internal sealed class SagaClient : ISagaClient
   public async Task<CancellationRequestResult> CancelAsync(Guid sagaId, CancellationToken cancellationToken = default)
   {
     var result = await _repository.RequestCancellationAsync(sagaId, _timeProvider.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+
     if (result == CancellationRequestResult.Requested)
       _signal.Notify();
+
     return result;
   }
 
@@ -93,10 +102,12 @@ internal sealed class SagaClient : ISagaClient
     catch (DuplicateSagaException ex)
     {
       var outcome = ex.Reason == DuplicateSagaReason.ActiveInstance ? SagaStartOutcome.AlreadyRunning : SagaStartOutcome.Duplicate;
+
       return new SagaStartResult(ex.ExistingSagaId, outcome);
     }
 
     _signal.Notify();
+
     return new SagaStartResult(saga.Id, SagaStartOutcome.Created);
   }
 
@@ -104,10 +115,12 @@ internal sealed class SagaClient : ISagaClient
   {
     using var data = JsonDocument.Parse(saga.DataJson);
     var steps = new List<StepSnapshot>(saga.Steps.Count);
+
     foreach (var step in saga.Steps.OrderBy(s => s.StepIndex))
       steps.Add(new StepSnapshot(step.Name, step.Status, step.Attempt, step.CheckCount, step.StartedAtUtc, step.CompletedAtUtc, step.Error));
 
     var failure = saga.FailureKind is { } kind ? new SagaFailure(kind, saga.FailureStep, saga.Error ?? "") : null;
+
     return new SagaSnapshot(
       saga.Id,
       saga.SagaType,
@@ -128,10 +141,13 @@ internal sealed class SagaClient : ISagaClient
   {
     if (saga.Status.IsFinished())
       return null;
+
     if (saga.Status == SagaStatus.Compensating)
       return saga.Steps.Where(s => s.Status == StepStatus.Succeeded).MaxBy(s => s.StepIndex)?.Name;
+
     if (_registry.TryGet(saga.SagaType, out var runtime) && saga.CurrentStepIndex < runtime.Steps.Count)
       return runtime.Steps[saga.CurrentStepIndex].Name;
+
     return saga.FindStep(saga.CurrentStepIndex)?.Name;
   }
 }

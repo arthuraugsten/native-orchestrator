@@ -30,9 +30,12 @@ public sealed class GenerateReportStep : HttpPollingSagaStep<ReportGenerationDat
   {
     var report = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.ReportResponse, cancellationToken)
       ?? throw new InvalidOperationException("The report API returned no body.");
+
     if (report.Status == "failed")
       return PollResult.Failed($"The report failed: {report.Error}");
+
     context.Data.DownloadUrl = report.DownloadUrl;
+
     return PollResult.Succeeded();
   }
 
@@ -41,8 +44,10 @@ public sealed class GenerateReportStep : HttpPollingSagaStep<ReportGenerationDat
     // The operation saved by the polling step is the report's status URL, which is also its resource URL.
     if (!context.TryGetState<HttpPollingOperation>(out var operation))
       return;
+
     using var request = new HttpRequestMessage(HttpMethod.Delete, operation.StatusUri);
     using var response = await _httpClientFactory.CreateClient(ClientName).SendAsync(request, cancellationToken);
+
     SagaHttp.ThrowIfFailed(response);
   }
 }

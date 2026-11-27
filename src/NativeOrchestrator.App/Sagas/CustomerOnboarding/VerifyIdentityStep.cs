@@ -30,7 +30,9 @@ public sealed class VerifyIdentityStep : HttpPollingSagaStep<CustomerOnboardingD
   {
     var verification = await response.Content.ReadFromJsonAsync(AppJsonContext.Default.VerificationResponse, cancellationToken)
       ?? throw new InvalidOperationException("The identity API returned no body.");
+
     context.Data.VerificationId = verification.VerificationId;
+
     return verification.Status switch
     {
       "approved" => PollResult.Succeeded(),
