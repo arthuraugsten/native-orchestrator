@@ -26,6 +26,9 @@ change is saved to a database, so a saga can run for days and survive restarts a
 
 `tests/Shared` holds the store contract tests and test helpers, compiled into both test projects.
 
+**Interactive docs:** open [`docs/index.html`](docs/index.html) in a browser for the design principles, workflows,
+activity diagrams, the class dependency tree and an example for every feature.
+
 ## Run it locally
 
 You need the .NET 11 SDK (see the repository's `global.json`) and Docker.
@@ -144,10 +147,45 @@ single-instance, and a failed report blocks the next one.
 The HTTP base classes treat `408`, `429` and `5xx` as transient (retried) and other `4xx` as permanent failures.
 `202` keeps polling and honours `Retry-After`.
 
+## Scheduling
+
+A saga can also start on a CRON schedule, declared at setup:
+
+```csharp
+.AddSaga<ReportGenerationSaga, ReportGenerationData>("report-generation", saga => saga.SingleInstance = true)
+.AddSchedule("nightly-sales", "report-generation", "0 2 * * *", occurrence => new ReportGenerationData
+{
+  ReportName = $"Daily sales {occurrence.ScheduledAtUtc.AddDays(-1):yyyy-MM-dd}",
+  Recipients = ["finance@example.test"],
+}, schedule => schedule.TimeZone = "Europe/Lisbon")
+```
+
+The expression has five fields (`minute hour day-of-month month day-of-week`), or six with seconds first. Fields take
+`*`, values, lists, ranges and steps (`*/15`, `1-5`, `0-30/10`); months and days also take names (`JAN`, `MON-FRI`).
+Macros: `@yearly`, `@monthly`, `@weekly`, `@daily`, `@hourly`. When both day fields are restricted, either one matches,
+as in standard cron. The data factory gets the occurrence (`ScheduleName`, `ScheduledAtUtc`), and the data still goes
+through the saga's `Validate`.
+
+| Case | What happens |
+| --- | --- |
+| An occurrence is due | Every instance with the worker enabled tries to start it, with the correlation ID `schedule:{name}:{yyyyMMddTHHmmssZ}`. The correlation index lets exactly one create the saga. |
+| The app was down when an occurrence was due | On startup, only the latest missed occurrence starts, and only if it's within `MisfireThreshold` (default 1 hour). Older ones are skipped, never backfilled. |
+| The saga is `SingleInstance` and one is still active | The occurrence is skipped (and logged), not queued. An instance that starts later, within the threshold, may still start it. |
+| The store is unavailable | The occurrence is tried again every `ScanInterval` while it's within the threshold. |
+| The factory throws or `Validate` rejects the data | The occurrence is skipped and logged; it isn't retried. |
+| A daylight-saving change skips the time | It runs when the clocks change. |
+| A daylight-saving change repeats the time | It runs once, the first time (an every-15-minutes schedule doesn't run in the repeated hour). |
+| `Enabled: false` | Nothing starts. When it's turned back on, missed occurrences don't catch up. |
+
+Nothing is stored for the schedule itself, so there is no extra table. The scheduler reads its options at every wake-up
+(at least once a minute), so changing `Schedules:{name}` in configuration applies without a restart. An invalid
+expression or time zone, an unknown saga or the wrong data type fails at startup. In the app, `nightly-sales` starts
+`report-generation` at 02:00 UTC, and every 2 minutes in Development.
+
 ## Configuration
 
 Options are bound from configuration and validated at startup. Each level overrides the one before it: defaults, then
-`SagaDefaults`, then the saga's code, then `Sagas:{name}`. For steps, configuration wins over code.
+`SagaDefaults`, then the saga's code, then `Sagas:{name}`. For steps and schedules, configuration wins over code.
 
 ```jsonc
 "NativeOrchestrator": {
@@ -164,6 +202,11 @@ Options are bound from configuration and validated at startup. Each level overri
     "customer-onboarding": {                   // SagaOptions for one saga
       "MaxDuration": "3.00:00:00", "SingleInstance": false, "FailedBlocksNewStarts": true,
       "Steps": { "VerifyIdentity": { "Timeout": "2.00:00:00", "Polling": { "InitialDelay": "00:01:00", "MaxDelay": "00:30:00" } } }
+    }
+  },
+  "Schedules": {
+    "nightly-sales": {                         // SagaScheduleOptions for one schedule; configuration overrides code
+      "Cron": "0 2 * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00"
     }
   }
 }
@@ -241,6 +284,7 @@ Package versions are central (`Directory.Packages.props`). Warnings are errors.
 
 - Steps run in sequence; parallel branches and waiting for external events (webhooks) aren't built yet.
 - Polling checks stay in history only as counts; the first wait is recorded, not each check.
-- Finished sagas aren't archived or deleted yet: add a retention job for `Sagas` and `SagaHistory`.
+- Finished sagas aren't archived or deleted yet: add a retention job for `Sagas` and `SagaHistory`. Schedules add a
+  saga row per occurrence.
 - Renaming or removing a step breaks compensation of sagas already past it; version saga definitions before changing
   them.

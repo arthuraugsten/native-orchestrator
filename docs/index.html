@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NativeOrchestrator Docs</title>
+<meta name="description" content="Interactive documentation for NativeOrchestrator: design principles, workflows, activity diagrams, class dependencies and feature examples.">
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --surface-2: #f0f0ec;
+    --text: #1d1f21;
+    --muted: #5c6166;
+    --border: #dedcd5;
+    --accent: #0f766e;
+    --accent-soft: #e0f2ef;
+    --accent-text: #ffffff;
+    --warn: #9a5b00;
+    --warn-soft: #fdf1dc;
+    --code-bg: #f4f3ee;
+    --code-text: #24292f;
+    --tok-key: #8250df;
+    --tok-str: #0a6e3a;
+    --tok-com: #6e7781;
+    --tok-num: #b35900;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 4px 16px rgba(0, 0, 0, .04);
+    --radius: 10px;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141618;
+      --surface: #1b1e21;
+      --surface-2: #23272b;
+      --text: #e6e6e3;
+      --muted: #a0a6ab;
+      --border: #30353a;
+      --accent: #2dd4bf;
+      --accent-soft: #173a36;
+      --accent-text: #0b1f1d;
+      --warn: #f3b453;
+      --warn-soft: #3a2c14;
+      --code-bg: #16191c;
+      --code-text: #d8dadc;
+      --tok-key: #c4a5ff;
+      --tok-str: #7ee2a8;
+      --tok-com: #7d868e;
+      --tok-num: #ffb46b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141618;
+    --surface: #1b1e21;
+    --surface-2: #23272b;
+    --text: #e6e6e3;
+    --muted: #a0a6ab;
+    --border: #30353a;
+    --accent: #2dd4bf;
+    --accent-soft: #173a36;
+    --accent-text: #0b1f1d;
+    --warn: #f3b453;
+    --warn-soft: #3a2c14;
+    --code-bg: #16191c;
+    --code-text: #d8dadc;
+    --tok-key: #c4a5ff;
+    --tok-str: #7ee2a8;
+    --tok-com: #7d868e;
+    --tok-num: #ffb46b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  code, pre { font-family: var(--mono); }
+  :not(pre) > code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0 .3em;
+    font-size: .88em;
+  }
+
+  header.top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+  .brand span { color: var(--accent); }
+  .search {
+    flex: 1;
+    max-width: 420px;
+    margin-left: auto;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+  }
+  .icon-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font: inherit;
+  }
+  .icon-btn:hover { border-color: var(--accent); }
+
+  .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 32px; max-width: 1240px; margin: 0 auto; padding: 24px 20px 80px; }
+  nav.side { position: sticky; top: 76px; align-self: start; max-height: calc(100vh - 96px); overflow: auto; }
+  nav.side a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 7px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  nav.side a:hover { background: var(--surface-2); color: var(--text); }
+  nav.side a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  nav.side .group { margin: 14px 10px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+  main section { margin-bottom: 56px; }
+  main h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.02em; }
+  main h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
+  main h3 { font-size: 16px; margin: 0 0 6px; }
+  .lead { color: var(--muted); font-size: 16px; margin: 0 0 20px; max-width: 760px; }
+  .section-intro { color: var(--muted); margin: 0 0 18px; max-width: 760px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .principle { padding: 16px; }
+  .principle .rule { font-size: 12px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .principle p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .principle .how { margin-top: 10px; font-size: 13px; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 22px; }
+  .stat { padding: 10px 14px; }
+  .stat b { display: block; font-size: 18px; }
+  .stat span { color: var(--muted); font-size: 13px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+  }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .panel { padding: 18px; }
+  .panel-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .panel-grid .notes { border-top: 1px solid var(--border); padding-top: 14px; }
+  .panel-grid .notes ul { columns: 2 320px; column-gap: 28px; }
+  .diagram { overflow-x: auto; text-align: center; min-height: 120px; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .diagram svg[aria-roledescription="sequence"] { min-width: 640px; }
+  .diagram pre { text-align: left; }
+  .notes ul { margin: 0; padding-left: 18px; }
+  .notes li { margin-bottom: 6px; font-size: 14px; }
+  .notes h3 { margin-bottom: 8px; }
+
+  .tree-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .tree-tools .legend { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-left: auto; }
+  .tree { padding: 14px 16px; font-size: 14px; }
+  .tree details { margin-left: 18px; }
+  .tree > details { margin-left: 0; }
+  .tree summary { cursor: pointer; padding: 3px 0; list-style: none; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .tree summary::-webkit-details-marker { display: none; }
+  .tree summary::before { content: "▸"; color: var(--muted); width: 10px; display: inline-block; transition: transform .15s; }
+  .tree details[open] > summary::before { transform: rotate(90deg); }
+  .tree details.leaf > summary::before { content: "•"; transform: none; }
+  .tree .name { font-family: var(--mono); font-weight: 600; }
+  .tree .role { color: var(--muted); font-size: 13px; }
+  .tree .cycle { color: var(--muted); font-size: 12px; font-style: italic; }
+  .tree .hit > summary .name { background: var(--warn-soft); color: var(--warn); border-radius: 4px; padding: 0 3px; }
+  .badge { font-size: 11px; border-radius: 5px; padding: 0 6px; border: 1px solid var(--border); color: var(--muted); font-family: var(--sans); }
+  .badge.public { border-color: var(--accent); color: var(--accent); }
+  .badge.interface { font-style: italic; }
+  .badge.asm { background: var(--surface-2); }
+  .index { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-top: 14px; }
+  .index .item { padding: 10px 12px; font-size: 13px; }
+  .index .item .name { font-family: var(--mono); font-weight: 600; font-size: 14px; }
+  .index .item .meta { color: var(--muted); }
+  .chip-link { font-family: var(--mono); font-size: 12px; border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; margin: 2px 4px 0 0; display: inline-block; cursor: pointer; background: none; color: var(--text); }
+  .chip-link:hover { border-color: var(--accent); color: var(--accent); }
+  .flash { animation: flash 1.4s ease; }
+  @keyframes flash { 0%, 40% { background: var(--warn-soft); } 100% { background: var(--surface); } }
+
+  .features { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; }
+  .feature-list { padding: 8px; align-self: start; position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; }
+  .feature-list .fgroup { margin: 10px 8px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .feature-list button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: none;
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+  }
+  .feature-list button:hover { background: var(--surface-2); }
+  .feature-list button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .feature { padding: 20px; }
+  .feature .summary { color: var(--muted); margin: 0 0 12px; }
+  .feature ul { padding-left: 18px; margin: 0 0 16px; }
+  .feature li { margin-bottom: 4px; font-size: 14px; }
+  .feature .callout { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: 14px; margin: 0 0 16px; }
+
+  .code { position: relative; margin: 0 0 14px; }
+  .code .label { font-size: 12px; color: var(--muted); margin: 0 0 4px; font-family: var(--mono); }
+  .code pre {
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .code .copy { position: absolute; right: 8px; top: 24px; font-size: 12px; padding: 3px 8px; }
+  .tok-key { color: var(--tok-key); }
+  .tok-str { color: var(--tok-str); }
+  .tok-com { color: var(--tok-com); font-style: italic; }
+  .tok-num { color: var(--tok-num); }
+
+  table.ref { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.ref th, table.ref td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.ref th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .table-wrap { overflow-x: auto; }
+
+  .empty { color: var(--muted); font-style: italic; padding: 12px; }
+  footer.foot { color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 16px; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px 16px 60px; }
+    nav.side { position: static; max-height: none; display: flex; flex-wrap: wrap; gap: 4px; }
+    nav.side .group { display: none; }
+    .panel-grid { grid-template-columns: minmax(0, 1fr); }
+    .features { grid-template-columns: minmax(0, 1fr); }
+    .feature-list { position: static; max-height: 260px; }
+    header.top { padding: 10px 16px; flex-wrap: wrap; }
+    .search { order: 3; max-width: none; flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Native<span>Orchestrator</span> docs</div>
+  <input id="search" class="search" type="search" placeholder="Search principles, features, classes…" aria-label="Search the documentation">
+  <button id="theme" class="icon-btn" type="button" aria-label="Toggle dark mode">◐ Theme</button>
+</header>
+
+<div class="layout">
+  <nav class="side" id="nav" aria-label="Sections">
+    <div class="group">Concepts</div>
+    <a href="#overview">Overview</a>
+    <a href="#principles">Design principles</a>
+    <div class="group">Behaviour</div>
+    <a href="#workflows">Workflows</a>
+    <a href="#activities">Activity diagrams</a>
+    <div class="group">Structure</div>
+    <a href="#classes">Class hierarchy</a>
+    <a href="#dependencies">Dependency tree</a>
+    <div class="group">Using it</div>
+    <a href="#features">Features &amp; examples</a>
+    <a href="#configuration">Configuration reference</a>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <h1>NativeOrchestrator</h1>
+      <p class="lead">A central orchestrator for <b>long-running sagas</b> on the .NET Generic Host. It calls external systems, polls them until their work finishes, and compensates the steps that succeeded when a later one fails. There is no workflow engine: every saga is a database row with a due time, so nothing waits in memory.</p>
+      <div class="stats" id="stats"></div>
+      <div class="card panel">
+        <h3>Projects</h3>
+        <div class="diagram" data-diagram="assemblies"></div>
+      </div>
+    </section>
+
+    <section id="principles">
+      <h2>Design principles</h2>
+      <p class="section-intro">The rules that keep the orchestrator correct. Each one is enforced by code, tests or the build; change one only on purpose, and update <code>AGENTS.md</code> with it.</p>
+      <div class="grid" id="principle-grid"></div>
+    </section>
+
+    <section id="workflows">
+      <h2>Workflows</h2>
+      <p class="section-intro">How the parts talk to each other, step by step.</p>
+      <div class="tabs" role="tablist" id="workflow-tabs"></div>
+      <div class="card panel" id="workflow-panel"></div>
+    </section>
+
+    <section id="activities">
+      <h2>Activity diagrams</h2>
+      <p class="section-intro">The decisions inside the engine: what happens to a saga, a step, a polling operation, a compensation and a schedule.</p>
+      <div class="tabs" role="tablist" id="activity-tabs"></div>
+      <div class="card panel" id="activity-panel"></div>
+    </section>
+
+    <section id="classes">
+      <h2>Class hierarchy</h2>
+      <p class="section-intro">The base classes you derive from. Your saga declares its steps; each step derives from one of the step base classes.</p>
+      <div class="card panel"><div class="diagram" data-diagram="hierarchy"></div></div>
+    </section>
+
+    <section id="dependencies">
+      <h2>Dependency tree</h2>
+      <p class="section-intro">What each class depends on, from the entry points down. Expand a node to see its dependencies; click a name in the index to find it. Interfaces show the classes that implement them.</p>
+      <div class="tree-tools">
+        <button class="icon-btn" type="button" id="tree-expand">Expand all</button>
+        <button class="icon-btn" type="button" id="tree-collapse">Collapse all</button>
+        <div class="legend">
+          <span><span class="badge public">public</span> public API</span>
+          <span><span class="badge">internal</span> implementation</span>
+          <span><span class="badge interface">interface</span> replaceable</span>
+        </div>
+      </div>
+      <div class="card tree" id="tree"></div>
+      <h3 style="margin-top:22px">Index</h3>
+      <div class="index" id="type-index"></div>
+    </section>
+
+    <section id="features">
+      <h2>Features &amp; examples</h2>
+      <p class="section-intro">Every feature, with code you can copy. Examples follow the repository's code style (2-space indents, no primary constructors).</p>
+      <div class="features">
+        <div class="card feature-list" id="feature-list" role="tablist" aria-label="Features"></div>
+        <div class="card feature" id="feature-panel"></div>
+      </div>
+    </section>
+
+    <section id="configuration">
+      <h2>Configuration reference</h2>
+      <p class="section-intro">Every option is bound from configuration and validated at startup. Precedence: class defaults → <code>SagaDefaults</code> → the saga's code → <code>Sagas:{name}</code>. For steps and schedules, configuration wins over code.</p>
+      <div class="card panel table-wrap"><table class="ref" id="config-table"></table></div>
+    </section>
+
+    <footer class="foot">
+      This page is part of the repository (<code>docs/index.html</code>). All content lives in the <code>DOCS</code> data block at the end of the file; diagrams are Mermaid text. <code>AGENTS.md</code> requires it to be updated whenever a design principle, workflow, diagram, class dependency or feature changes.
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+/* =====================================================================================================================
+   DOCS: all content of the page. Update this block when the code changes (see AGENTS.md). Layout code is below it.
+   ===================================================================================================================== */
+const DOCS = {
+  stats: [
+    { value: "0", label: "workflow engines" },
+    { value: "4", label: "libraries + app" },
+    { value: "> 12 h", label: "sagas (tested to 26 h)" },
+    { value: "1", label: "row per saga, no memory held" },
+  ],
+
+  principles: [
+    {
+      title: "Built-in .NET first",
+      rule: "Requirement 1",
+      text: "Generic Host, BackgroundService, options and validation, TimeProvider, System.Text.Json source generation, IHttpClientFactory, [LoggerMessage], Meter and ActivitySource, EF Core and Microsoft.Extensions.Http.Resilience. Third-party code only in tests.",
+      how: "The CRON parser is in Core rather than a package for the same reason.",
+    },
+    {
+      title: "Storage-agnostic core",
+      rule: "Rule 1",
+      text: "Core has no database or web dependency. The engine only sees ISagaRepository and ISagaWorkQueue; EF Core and SQL Server live in their own libraries.",
+      how: "Every store passes the shared SagaStoreContractTests.",
+    },
+    {
+      title: "Nothing waits in memory",
+      rule: "Rule 3",
+      text: "A step that must wait returns StepResult.Poll(...) or throws; it never sleeps. The saga is saved with a due time (NextRunAtUtc), so polls and retries survive restarts and can last days.",
+      how: "The scheduler only sleeps until the next occurrence and keeps no state that matters.",
+    },
+    {
+      title: "Checkpoint after every step",
+      rule: "Rule 4",
+      text: "The saga is saved after each step, before the next one runs. A crash repeats at most one step.",
+      how: "Steps are never batched into one save.",
+    },
+    {
+      title: "Every save is fenced",
+      rule: "Rule 5",
+      text: "A save needs the current lease token and the version it read. The lease stops two instances running the same saga; the version stops a stale save overwriting newer state.",
+      how: "Cancellation deliberately bumps the version, so a run in progress drops its work.",
+    },
+    {
+      title: "At least once, idempotent",
+      rule: "Rule 6",
+      text: "Steps and compensations can run more than once. context.IdempotencyKey ({sagaId:N}:{step}, or :compensate) is stable across retries, and the HTTP base classes send it as Idempotency-Key.",
+      how: "External systems use the key to ignore repeats.",
+    },
+    {
+      title: "Time comes from TimeProvider",
+      rule: "Rule 7",
+      text: "Never DateTime.UtcNow. The tests run multi-day sagas in milliseconds on a FakeTimeProvider.",
+      how: "Use context.TimeProvider in steps.",
+    },
+    {
+      title: "Names are persisted",
+      rule: "Rule 8",
+      text: "Saga, step and schedule names are stored in rows and used as configuration keys. Renaming or reordering steps affects running sagas.",
+      how: "Pass explicit names and keep them stable.",
+    },
+    {
+      title: "No direct Polly",
+      rule: "Rule 9",
+      text: "HTTP resilience comes from Microsoft's standard resilience handler. A build guard fails on a direct Polly reference or a transitive Polly above the reviewed version.",
+      how: "Raise MaxAllowedPollyVersion only after reviewing the licence.",
+    },
+    {
+      title: "Fail fast on configuration",
+      rule: "Rule 10",
+      text: "Options are validated at startup (ValidateOnStart, IValidateOptions). Duplicate names, empty sagas, invalid CRON expressions and schedules for unknown sagas all stop the app with a message that says how to fix it.",
+      how: "The worker and scheduler depend on the registries, which validate when built.",
+    },
+    {
+      title: "Small public API, SOLID",
+      rule: "Rule 11, requirement 5",
+      text: "Small single-purpose classes (claim, run steps, compensate, keep the lease, store). Implementation types are internal; extension is through base classes, interfaces and options.",
+      how: "Tests see internals through InternalsVisibleTo.",
+    },
+    {
+      title: "Notifications never corrupt state",
+      rule: "Decision: hooks and observers",
+      text: "OnCompletedAsync, OnFailedAsync and ISagaLifecycleObserver run after the save, at most once, and their exceptions are only logged.",
+      how: "For guaranteed delivery, read SagaHistory (or add an outbox).",
+    },
+  ],
+
+  diagrams: {
+    assemblies: `flowchart LR
+  App["NativeOrchestrator.App<br/>API, sagas, simulated systems"] --> SqlServer
+  App --> Core
+  SqlServer["NativeOrchestrator.SqlServer<br/>UseSqlServer, locking claim, migrations"] --> EF
+  EF["NativeOrchestrator.EntityFrameworkCore<br/>SagaDbContext, EF store"] --> Core
+  Core["NativeOrchestrator.Core<br/>base classes, engine, scheduler, client"]
+  CoreTests["Core.Tests"] -.-> Core
+  SqlTests["SqlServer.Tests<br/>Testcontainers"] -.-> SqlServer`,
+
+    hierarchy: `classDiagram
+  direction TB
+  class Saga~TData~ {
+    <<abstract>>
+    #Configure(ISagaBuilder~TData~ saga)
+    #Validate(TData data) string?
+    #OnCompletedAsync(SagaContext~TData~ context)
+    #OnFailedAsync(SagaContext~TData~ context, SagaFailure failure)
+  }
+  class SagaStep~TData~ {
+    <<abstract>>
+    +ExecuteAsync(StepContext~TData~ context) StepResult
+    +CompensateAsync(StepContext~TData~ context)
+  }
+  class PollingSagaStep~TData~ {
+    <<abstract>>
+    #StartAsync(context) TOperation
+    #CheckAsync(context, TOperation operation) PollResult
+  }
+  class HttpSagaStep~TData~ {
+    <<abstract>>
+    #ClientName string
+    #SendAsync(HttpRequestMessage request, context) HttpResponseMessage
+  }
+  class HttpPollingSagaStep~TData~ {
+    <<abstract>>
+    #ClientName string
+    #CreateStartRequest(context) HttpRequestMessage
+    #ReadStatusAsync(context, HttpResponseMessage response) PollResult
+    #CreateStatusRequest(context, Uri statusUri) HttpRequestMessage
+  }
+  class ISagaBuilder~TData~ {
+    <<interface>>
+    +Step(name, configure) ISagaBuilder~TData~
+  }
+  SagaStep <|-- PollingSagaStep
+  SagaStep <|-- HttpSagaStep
+  PollingSagaStep <|-- HttpPollingSagaStep : TOperation is HttpPollingOperation
+  Saga ..> ISagaBuilder : declares steps
+  ISagaBuilder ..> SagaStep : adds steps of type TStep`,
+  },
+
+  workflows: [
+    {
+      id: "start",
+      title: "Start a saga",
+      diagram: `sequenceDiagram
+  autonumber
+  participant C as Caller
+  participant API as POST /sagas/type
+  participant SC as ISagaClient
+  participant V as Saga.Validate
+  participant S as ISagaRepository
+  participant W as SagaWorkSignal
+  C->>API: data, correlationId
+  API->>SC: StartAsync(type, data, correlationId)
+  SC->>V: Validate(data)
+  alt rejected
+    V-->>API: ArgumentException, answered 400
+  end
+  SC->>S: CreateAsync(Pending, due now, ActiveInstanceKey if single-instance)
+  alt same correlation ID exists
+    S-->>SC: DuplicateSagaException(CorrelationId)
+    SC-->>API: Duplicate, 202 with the existing saga
+  else single-instance saga active or failed
+    S-->>SC: DuplicateSagaException(ActiveInstance)
+    SC-->>API: AlreadyRunning, 409 with the running saga
+  else created
+    SC->>W: Notify (wakes the local worker)
+    SC-->>API: Created, 202 with statusUrl
+  end`,
+      notes: [
+        "Unknown saga types answer 404 (UnknownSagaTypeException).",
+        "The correlation ID check comes first, so a repeated start stays idempotent even for a single-instance saga.",
+        "Uniqueness is enforced by the store's unique indexes, so racing starts on different instances are safe.",
+        "Callers poll GET /sagas/{id} until the status is Completed, Compensated or Failed.",
+      ],
+    },
+    {
+      id: "run",
+      title: "Run a saga",
+      diagram: `sequenceDiagram
+  autonumber
+  participant W as SagaWorker
+  participant Q as ISagaWorkQueue
+  participant E as SagaEngine
+  participant L as LeaseKeeper
+  participant X as SagaStepExecutor
+  participant O as Hooks and observers
+  loop every ScanInterval, or when signalled
+    W->>Q: ClaimDueAsync(free slots, lease expiry)
+    Q-->>W: due sagas with lease tokens
+    W->>E: RunAsync(claimed saga)
+    activate E
+    E->>L: start renewing every LeaseRenewalInterval
+    loop until a step must wait or the saga finishes
+      E->>X: run the current step
+      X-->>E: Success, Poll, retry later or Failure
+      E->>Q: SaveAsync(token, version) checkpoint
+    end
+    E->>Q: final SaveAsync and release the lease
+    E->>O: OnCompletedAsync / OnFailedAsync, observers (after the save)
+    deactivate E
+  end`,
+      notes: [
+        "Each instance runs up to MaxConcurrency sagas at once; any number of instances share the database.",
+        "If the lease is lost, LeaseKeeper cancels the run token and nothing more is saved.",
+        "An engine or store error keeps the lease, so the saga runs again when it expires; a concurrency conflict or shutdown releases it at once.",
+        "The final save isn't cancelled by shutdown, so finished work isn't thrown away.",
+      ],
+    },
+    {
+      id: "cancel",
+      title: "Cancel",
+      diagram: `sequenceDiagram
+  autonumber
+  participant C as Caller
+  participant S as Store
+  participant R as Run in progress
+  participant N as Next run
+  C->>S: RequestCancellationAsync(id)
+  S->>S: CancellationRequested = true, due now, Version + 1
+  S-->>C: Requested (202)
+  R->>S: SaveAsync with the old version
+  S-->>R: SagaConcurrencyException, the run drops its work
+  N->>S: claim
+  N->>N: sees the flag, compensates succeeded steps
+  N->>S: save Compensated (FailureKind Cancelled)`,
+      notes: [
+        "Pending, Running and Waiting sagas can be cancelled. Finished or compensating ones answer 409 (NotCancellable).",
+        "A second request answers AlreadyRequested.",
+        "The cost of never losing a cancellation is possibly repeating one step, which steps must allow anyway.",
+      ],
+    },
+    {
+      id: "leases",
+      title: "Leases across instances",
+      diagram: `sequenceDiagram
+  autonumber
+  participant A as Instance A
+  participant DB as SQL Server
+  participant B as Instance B
+  A->>DB: claim with UPDLOCK, READPAST (token A)
+  B->>DB: claim skips the locked or leased row
+  Note over A: A stops responding, its lease expires
+  B->>DB: claim after expiry (token B)
+  A-->>DB: late save with token A
+  DB-->>A: rejected, lease lost
+  B->>DB: save with token B and current version`,
+      notes: [
+        "The SQL Server claim is a CTE with UPDLOCK, READPAST, ROWLOCK, so instances never block each other.",
+        "The provider-neutral claim (UseLockingClaim: false) can hand one saga to two instances under contention; the token check on save rejects the second.",
+        "Steps can run longer than a lease because LeaseKeeper renews it.",
+      ],
+    },
+    {
+      id: "schedule",
+      title: "Scheduled start",
+      diagram: `sequenceDiagram
+  autonumber
+  participant SA as Scheduler on A
+  participant SB as Scheduler on B
+  participant SC as ISagaClient
+  participant DB as Store
+  Note over SA,SB: both wake at the occurrence (02:00)
+  SA->>SC: StartAsync(correlation schedule:nightly-sales:20261127T020000Z)
+  SB->>SC: StartAsync(same correlation ID)
+  SC->>DB: CreateAsync (A)
+  DB-->>SC: created
+  SC->>DB: CreateAsync (B)
+  DB-->>SC: unique index rejects it, Duplicate
+  Note over SA,SB: exactly one saga for the occurrence`,
+      notes: [
+        "Nothing is stored for the schedule itself: the occurrence time is in the correlation ID.",
+        "After a restart, only the latest missed occurrence starts, and only within MisfireThreshold.",
+        "If the saga is single-instance and one is still active, the occurrence is skipped, not queued.",
+      ],
+    },
+  ],
+
+  activities: [
+    {
+      id: "states",
+      title: "Saga states",
+      diagram: `stateDiagram-v2
+  [*] --> Pending: StartAsync or a schedule
+  Pending --> Running: claimed by a worker
+  Running --> Waiting: a step polls or is retried later
+  Waiting --> Running: due again (NextRunAtUtc)
+  Running --> Completed: the last step succeeded
+  Running --> Compensating: step failed, step or saga timed out, cancelled
+  Waiting --> Compensating: cancelled or saga timed out
+  Compensating --> Compensated: every succeeded step undone
+  Compensating --> Failed: a compensation failed after its retries
+  Completed --> [*]
+  Compensated --> [*]
+  Failed --> [*]: needs manual action`,
+      notes: [
+        "Active statuses (claimable): Pending, Running, Waiting, Compensating.",
+        "Finished statuses: Completed, Compensated, Failed. NextRunAtUtc is null once finished.",
+        "A single-instance saga releases its slot on Completed or Compensated, and on Failed only if FailedBlocksNewStarts is off.",
+      ],
+    },
+    {
+      id: "step",
+      title: "Step run",
+      diagram: `flowchart TD
+  A([The step is due]) --> T{"Past the step Timeout<br/>or the saga MaxDuration?"}
+  T -- yes --> TO[StepTimedOut / SagaTimedOut] --> F
+  T -- no --> X["ExecuteAsync<br/>(bounded by ExecutionTimeout)"]
+  X --> R{Outcome}
+  R -- "Success()" --> S[Step Succeeded, save] --> N([Next step in the same run])
+  R -- "Poll(delay?)" --> P["Waiting: due after the polling backoff,<br/>or delay / Retry-After capped at MaxDelay"] --> E([Save, release the lease, run ends])
+  R -- exception --> RP{"IRetryPolicy:<br/>attempts left?"}
+  RP -- yes --> RS[Due after the backoff] --> E
+  RP -- no --> F
+  R -- "Failure() / StepFailedException" --> F[Step Failed]
+  F --> C{ContinueOnError?}
+  C -- yes --> N
+  C -- no --> CP([Compensate the saga])`,
+      notes: [
+        "An exception is transient (durable retry). StepResult.Failure or StepFailedException is permanent.",
+        "HTTP: 408, 429 and 5xx are transient; other 4xx are permanent.",
+        "The step timeout is measured from the step's first start, so restarts don't reset it.",
+        "Changes to context.Data are saved when a step succeeds or polls, and dropped when it fails.",
+      ],
+    },
+    {
+      id: "polling",
+      title: "Polling step",
+      diagram: `flowchart TD
+  A([PollingSagaStep runs]) --> S{"Operation saved<br/>in the step state?"}
+  S -- no --> ST["StartAsync returns the operation"] --> SV[SetState operation, saved with the saga] --> P1([Poll: due after InitialDelay])
+  S -- yes --> CK["CheckAsync(operation)"]
+  CK -- "Pending(retryAfter?)" --> P2(["Poll: backoff by CheckCount,<br/>or Retry-After capped at MaxDelay"])
+  CK -- "Succeeded()" --> OK([Success, next step])
+  CK -- "Failed(error)" --> NO([Failure, no retries])
+  CK -- exception --> RT([Transient: retried by IRetryPolicy])`,
+      notes: [
+        "HttpPollingSagaStep implements StartAsync and CheckAsync for 202 Accepted + Location: 202 keeps polling, other 2xx go to ReadStatusAsync.",
+        "History records only the first wait (StepWaiting), not each check, so sagas can poll for days.",
+        "A wait never goes past the step's deadline.",
+      ],
+    },
+    {
+      id: "compensation",
+      title: "Compensation",
+      diagram: `flowchart TD
+  A([Saga is Compensating]) --> B[Succeeded steps, latest first]
+  B --> C{Another step to undo?}
+  C -- no --> D{Any CompensationFailed?}
+  D -- no --> CO([Compensated])
+  D -- yes --> FA([Failed: needs manual action])
+  C -- yes --> U["CompensateAsync<br/>(IdempotencyKey ends with :compensate)"]
+  U -- ok --> M[StepCompensated, save] --> C
+  U -- exception --> RT{"CompensationRetry:<br/>attempts left?"}
+  RT -- yes --> W([Due after the backoff, run ends])
+  RT -- no --> CF[StepCompensationFailed, save] --> C`,
+      notes: [
+        "Only steps that succeeded are compensated; the failed step isn't.",
+        "A broken compensation is never retried forever: after CompensationRetry it is marked and the others still run.",
+        "OnFailedAsync runs once compensation finishes, with Status Compensated or Failed.",
+      ],
+    },
+    {
+      id: "scheduler",
+      title: "Scheduler",
+      diagram: `flowchart TD
+  A([Scheduler wakes]) --> EN{Schedule Enabled?}
+  EN -- no --> SK[Mark handled: no catch-up later] --> NX
+  EN -- yes --> W["Occurrences since the last check,<br/>within MisfireThreshold"]
+  W --> L{Latest due occurrence?}
+  L -- none --> NX
+  L -- yes --> D["Data factory(occurrence)"]
+  D -- throws --> RJ[Rejected, logged, not retried] --> NX
+  D --> ST["StartAsync with correlation<br/>schedule:name:yyyyMMddTHHmmssZ"]
+  ST -- Created --> NX
+  ST -- Duplicate --> NX
+  ST -- AlreadyRunning --> SKP[Skipped, logged] --> NX
+  ST -- "Validate rejects" --> RJ
+  ST -- store error --> RE[Try again after ScanInterval] --> NX
+  NX([Sleep until the next occurrence, at most 1 minute])`,
+      notes: [
+        "Older occurrences in the window are counted as misfired, except on the first check after startup.",
+        "Daylight saving: a skipped time runs when the clocks change; a repeated time runs once, the first time.",
+        "The scheduler runs on every instance with WorkerEnabled; the correlation index makes each occurrence start once.",
+      ],
+    },
+  ],
+
+  // The dependency tree. deps: constructor dependencies (or what the type uses); impl: implementations of an interface.
+  types: [
+    { name: "SagaWorker", asm: "Core", kind: "class", vis: "internal", role: "Hosted service: claims due sagas and runs them", deps: ["SagaRegistry", "ISagaWorkQueue", "SagaEngine", "ISagaStoreInitializer", "SagaWorkSignal", "TimeProvider"], root: true },
+    { name: "SagaScheduler", asm: "Core", kind: "class", vis: "internal", role: "Hosted service: starts sagas on CRON schedules", deps: ["SagaScheduleRegistry", "ISagaClient", "SagaScheduleOptions", "CronExpression", "SagaDiagnostics", "TimeProvider"], root: true },
+    { name: "ISagaClient", asm: "Core", kind: "interface", vis: "public", role: "Starts, reads and cancels sagas", impl: ["SagaClient"], root: true },
+    { name: "SagaClient", asm: "Core", kind: "class", vis: "internal", role: "Validates data, creates the row, wakes the worker", deps: ["SagaRegistry", "SagaOptions", "ISagaRepository", "SagaWorkSignal", "TimeProvider"] },
+    { name: "SagaEngine", asm: "Core", kind: "class", vis: "internal", role: "Runs one claimed saga: steps, saves, hooks", deps: ["SagaRegistry", "ISagaWorkQueue", "SagaStepExecutor", "CompensationRunner", "LeaseKeeper", "SagaOptions", "ISagaLifecycleObserver", "SagaDiagnostics", "TimeProvider"] },
+    { name: "SagaStepExecutor", asm: "Core", kind: "class", vis: "internal", role: "Runs a step and decides success, poll, retry or failure", deps: ["IRetryPolicy", "IBackoffStrategy", "StepInvoker", "SagaDiagnostics", "TimeProvider"] },
+    { name: "CompensationRunner", asm: "Core", kind: "class", vis: "internal", role: "Undoes succeeded steps, latest first", deps: ["IRetryPolicy", "StepInvoker", "SagaDiagnostics", "TimeProvider"] },
+    { name: "LeaseKeeper", asm: "Core", kind: "class", vis: "internal", role: "Renews the lease during a run; cancels it when lost", deps: ["ISagaWorkQueue", "TimeProvider"] },
+    { name: "StepInvoker", asm: "Core", kind: "class", vis: "internal", role: "Calls a step with ExecutionTimeout and catches its exceptions", deps: [] },
+    { name: "SagaRegistry", asm: "Core", kind: "class", vis: "internal", role: "Every registered saga; builds and validates them at startup", deps: ["SagaRuntime"] },
+    { name: "SagaRuntime", asm: "Core", kind: "class", vis: "internal", role: "One saga type without generics: steps, data, hooks", deps: ["Saga<TData>", "SagaBuilder", "StepDefinition", "ISagaSerializer", "TimeProvider"] },
+    { name: "SagaBuilder", asm: "Core", kind: "class", vis: "internal", role: "Implements ISagaBuilder: collects and validates steps", deps: ["StepDefinition"] },
+    { name: "StepDefinition", asm: "Core", kind: "class", vis: "internal", role: "A declared step: name, factory, options from code", deps: ["SagaStep<TData>", "StepOptions"] },
+    { name: "SagaScheduleRegistry", asm: "Core", kind: "class", vis: "internal", role: "Every schedule, checked against its saga at startup", deps: ["SagaRegistry", "SagaSchedule"] },
+    { name: "SagaSchedule", asm: "Core", kind: "class", vis: "internal", role: "A schedule: saga type, data factory, correlation IDs", deps: ["ScheduledOccurrence"] },
+    { name: "CronExpression", asm: "Core", kind: "class", vis: "internal", role: "Parses CRON and finds the next occurrence in a time zone", deps: [] },
+    { name: "SagaWorkSignal", asm: "Core", kind: "class", vis: "internal", role: "Wakes the local worker when a saga is created", deps: [] },
+    { name: "SagaDiagnostics", asm: "Core", kind: "class", vis: "internal", role: "Meter and ActivitySource named NativeOrchestrator", deps: [] },
+    { name: "ISagaRepository", asm: "Core", kind: "interface", vis: "public", role: "Store: create, read, history, request cancellation", impl: ["InMemorySagaStore", "EntityFrameworkSagaStore"] },
+    { name: "ISagaWorkQueue", asm: "Core", kind: "interface", vis: "public", role: "Store: claim, renew, save (fenced), release", impl: ["InMemorySagaStore", "EntityFrameworkSagaStore"] },
+    { name: "ISagaStoreInitializer", asm: "Core", kind: "interface", vis: "public", role: "Prepares the store when the worker starts", impl: ["SagaDatabaseInitializer"] },
+    { name: "IRetryPolicy", asm: "Core", kind: "interface", vis: "public", role: "Decides whether a failed attempt is retried and when", impl: ["DefaultRetryPolicy"] },
+    { name: "DefaultRetryPolicy", asm: "Core", kind: "class", vis: "public", role: "Retries up to MaxAttempts with the backoff strategy", deps: ["IBackoffStrategy"] },
+    { name: "IBackoffStrategy", asm: "Core", kind: "interface", vis: "public", role: "The delay for an attempt or check", impl: ["ExponentialBackoffStrategy"] },
+    { name: "ExponentialBackoffStrategy", asm: "Core", kind: "class", vis: "public", role: "InitialDelay × Multiplier^n, capped at MaxDelay, optional jitter", deps: [] },
+    { name: "ISagaSerializer", asm: "Core", kind: "interface", vis: "public", role: "Saga data and step state as JSON text", impl: ["SystemTextJsonSagaSerializer"] },
+    { name: "SystemTextJsonSagaSerializer", asm: "Core", kind: "class", vis: "internal", role: "System.Text.Json with source-generated contexts first", deps: [] },
+    { name: "ISagaLifecycleObserver", asm: "Core", kind: "interface", vis: "public", role: "Receives every saved history event, at most once", impl: ["LoggingSagaObserver"] },
+    { name: "Saga<TData>", asm: "Core", kind: "abstract", vis: "public", role: "Base class: Configure, Validate, OnCompletedAsync, OnFailedAsync", deps: ["ISagaBuilder<TData>"] },
+    { name: "ISagaBuilder<TData>", asm: "Core", kind: "interface", vis: "public", role: "Declares steps in Configure", impl: ["SagaBuilder"] },
+    { name: "SagaStep<TData>", asm: "Core", kind: "abstract", vis: "public", role: "Base step: ExecuteAsync, CompensateAsync", deps: ["StepContext<TData>"] },
+    { name: "StepContext<TData>", asm: "Core", kind: "class", vis: "public", role: "Data, idempotency key, attempt, state, services, clock", deps: ["ISagaSerializer", "TimeProvider"] },
+    { name: "StepOptions", asm: "Core", kind: "class", vis: "public", role: "Per-step overrides: timeouts, retries, polling, ContinueOnError", deps: [] },
+    { name: "SagaOptions", asm: "Core", kind: "class", vis: "public", role: "Per-saga options, named by saga type", deps: [] },
+    { name: "SagaScheduleOptions", asm: "Core", kind: "class", vis: "public", role: "Cron, TimeZone, Enabled, MisfireThreshold", deps: [] },
+    { name: "ScheduledOccurrence", asm: "Core", kind: "record", vis: "public", role: "Passed to a schedule's data factory", deps: [] },
+    { name: "TimeProvider", asm: ".NET", kind: "class", vis: "public", role: "The clock; FakeTimeProvider in tests", deps: [] },
+    { name: "InMemorySagaStore", asm: "Core", kind: "class", vis: "public", role: "Store for tests and experiments", deps: [] },
+    { name: "EntityFrameworkSagaStore", asm: "EntityFrameworkCore", kind: "class", vis: "public", role: "Store on any relational EF Core provider", deps: ["SagaDbContext", "ISagaClaimStrategy"] },
+    { name: "SagaDbContext", asm: "EntityFrameworkCore", kind: "class", vis: "public", role: "Sagas, SagaSteps, SagaHistory in the saga schema", deps: [] },
+    { name: "ISagaClaimStrategy", asm: "EntityFrameworkCore", kind: "interface", vis: "public", role: "How due sagas are leased", impl: ["DefaultClaimStrategy", "SqlServerClaimStrategy"] },
+    { name: "DefaultClaimStrategy", asm: "EntityFrameworkCore", kind: "class", vis: "internal", role: "Provider-neutral ExecuteUpdate claim", deps: ["SagaDbContext"] },
+    { name: "SqlServerClaimStrategy", asm: "SqlServer", kind: "class", vis: "public", role: "UPDLOCK, READPAST, ROWLOCK claim", deps: ["SagaDbContext"] },
+    { name: "SagaDatabaseInitializer", asm: "EntityFrameworkCore", kind: "class", vis: "internal", role: "Applies migrations when ApplyMigrationsOnStartup is on", deps: ["SagaDbContext"] },
+    { name: "LoggingSagaObserver", asm: "App", kind: "class", vis: "public", role: "Example observer in the app", deps: [] },
+  ],
+
+  features: [
+    {
+      id: "saga",
+      group: "Define",
+      title: "Define a saga",
+      summary: "A saga is a Saga<TData> subclass that declares its steps in order. TData is stored as JSON after every step.",
+      points: [
+        "Register it with AddSaga<TSaga, TData>(\"name\"). The name is stored with every saga and is the configuration key.",
+        "Override Validate to reject bad start data (the API answers 400).",
+        "Add TData (and step state types) to your JsonSerializerContext.",
+      ],
+      code: [
+        { label: "ReportGenerationSaga.cs", lang: "cs", code: `public sealed class ReportGenerationSaga : Saga<ReportGenerationData>
+{
+  public const string Name = "report-generation";
+
+  protected override void Configure(ISagaBuilder<ReportGenerationData> saga) => saga
+    .Step<GenerateReportStep>(configure: step => step.Timeout = TimeSpan.FromHours(48))
+    .Step<PublishReportStep>();
+
+  protected override string? Validate(ReportGenerationData data) =>
+    data.Recipients.Count == 0 ? "recipients must list at least one email address." : null;
+}` },
+        { label: "Program.cs", lang: "cs", code: `builder.Services.AddNativeOrchestrator(configuration.GetSection("NativeOrchestrator"))
+  .AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name)
+  .UseSqlServer(
+    configuration.GetSection("NativeOrchestrator:SqlServer"),
+    sql => sql.ConnectionString = configuration.GetConnectionString("Sagas") ?? "")
+  .ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));` },
+      ],
+    },
+    {
+      id: "step",
+      group: "Define",
+      title: "Write a step",
+      summary: "Derive from SagaStep<TData>. ExecuteAsync returns a StepResult; CompensateAsync undoes the step if a later one fails.",
+      points: [
+        "StepResult.Success(), StepResult.Poll(delay?) or StepResult.Failure(error).",
+        "Throwing is a transient failure and is retried; StepFailedException is permanent.",
+        "Steps are created from DI on each run, so they take services in their constructors.",
+        "Use context.TimeProvider for time, never DateTime.UtcNow.",
+      ],
+      code: [
+        { label: "ReserveStockStep.cs", lang: "cs", code: `public sealed class ReserveStockStep : SagaStep<OrderData>
+{
+  private readonly IStockService _stock;
+
+  public ReserveStockStep(IStockService stock)
+  {
+    _stock = stock;
+  }
+
+  public override async Task<StepResult> ExecuteAsync(StepContext<OrderData> context, CancellationToken cancellationToken)
+  {
+    var reservation = await _stock.ReserveAsync(context.Data.Items, context.IdempotencyKey, cancellationToken);
+    if (!reservation.Accepted)
+      return StepResult.Failure($"Out of stock: {reservation.Reason}");
+    context.Data.ReservationId = reservation.Id;
+    return StepResult.Success();
+  }
+
+  public override async Task CompensateAsync(StepContext<OrderData> context, CancellationToken cancellationToken)
+  {
+    if (context.Data.ReservationId is { } id)
+      await _stock.ReleaseAsync(id, context.IdempotencyKey, cancellationToken);
+  }
+}` },
+      ],
+    },
+    {
+      id: "http",
+      group: "Define",
+      title: "HTTP step",
+      summary: "HttpSagaStep<TData> sends requests through a named HttpClient with the Idempotency-Key header and turns failed responses into step failures.",
+      points: [
+        "408, 429 and 5xx throw (retried); other 4xx fail the step.",
+        "Add in-call resilience to the named client with AddStandardResilienceHandler(); the engine adds durable retries on top.",
+        "POST is retried safely because of the idempotency key.",
+      ],
+      code: [
+        { label: "PublishReportStep.cs", lang: "cs", code: `public sealed class PublishReportStep : HttpSagaStep<ReportGenerationData>
+{
+  public PublishReportStep(IHttpClientFactory httpClientFactory)
+    : base(httpClientFactory)
+  {
+  }
+
+  protected override string ClientName => "notifications";
+
+  public override async Task<StepResult> ExecuteAsync(StepContext<ReportGenerationData> context, CancellationToken cancellationToken)
+  {
+    using var request = new HttpRequestMessage(HttpMethod.Post, "email")
+    {
+      Content = JsonContent.Create(new EmailRequest(context.Data.Recipients[0], "Report ready", context.Data.DownloadUrl)),
+    };
+    using var response = await SendAsync(request, context, cancellationToken);
+    return StepResult.Success();
+  }
+}` },
+        { label: "Program.cs", lang: "cs", code: `builder.Services.AddHttpClient("notifications", client => client.BaseAddress = new Uri("https://notifications.example/"))
+  .AddStandardResilienceHandler();` },
+      ],
+    },
+    {
+      id: "polling",
+      group: "Define",
+      title: "Polling step",
+      summary: "PollingSagaStep<TData, TOperation> starts an operation once, saves it in the step state, then checks it on later runs until it finishes.",
+      points: [
+        "StartAsync returns the operation (saved with the saga); CheckAsync returns PollResult.Pending(retryAfter?), Succeeded() or Failed(error).",
+        "Between checks the saga is saved as Waiting: nothing waits in memory, so polls can last days.",
+        "CheckCount drives the backoff (PollingOptions). The step Timeout counts from the first start.",
+      ],
+      code: [
+        { label: "ExportStep.cs", lang: "cs", code: `public sealed class ExportStep : PollingSagaStep<ExportData, string>
+{
+  private readonly IWarehouse _warehouse;
+
+  public ExportStep(IWarehouse warehouse)
+  {
+    _warehouse = warehouse;
+  }
+
+  protected override Task<string> StartAsync(StepContext<ExportData> context, CancellationToken cancellationToken) =>
+    _warehouse.StartExportAsync(context.Data.Query, context.IdempotencyKey, cancellationToken);
+
+  protected override async Task<PollResult> CheckAsync(StepContext<ExportData> context, string jobId, CancellationToken cancellationToken)
+  {
+    var job = await _warehouse.GetJobAsync(jobId, cancellationToken);
+    return job.State switch
+    {
+      "done" => PollResult.Succeeded(),
+      "error" => PollResult.Failed(job.Error ?? "The export failed."),
+      _ => PollResult.Pending(),
+    };
+  }
+}` },
+        { label: "Saga Configure", lang: "cs", code: `saga.Step<ExportStep>(configure: step =>
+{
+  step.Timeout = TimeSpan.FromDays(2);
+  step.Polling = new PollingOptions { InitialDelay = TimeSpan.FromMinutes(1), MaxDelay = TimeSpan.FromMinutes(30), Multiplier = 1.5 };
+});` },
+      ],
+    },
+    {
+      id: "httppolling",
+      group: "Define",
+      title: "HTTP polling step",
+      summary: "HttpPollingSagaStep<TData> implements the asynchronous request-reply pattern: 202 Accepted with a Location header, then poll that URL.",
+      points: [
+        "202 keeps polling and honours Retry-After (capped at MaxDelay). Other 2xx responses go to ReadStatusAsync.",
+        "The operation saved in the step state is an HttpPollingOperation with the status URI, so compensation can use it.",
+        "Override CreateStatusRequest to change the status request.",
+      ],
+      code: [
+        { label: "GenerateReportStep.cs", lang: "cs", code: `public sealed class GenerateReportStep : HttpPollingSagaStep<ReportGenerationData>
+{
+  public GenerateReportStep(IHttpClientFactory httpClientFactory)
+    : base(httpClientFactory)
+  {
+  }
+
+  protected override string ClientName => "reports";
+
+  protected override HttpRequestMessage CreateStartRequest(StepContext<ReportGenerationData> context) =>
+    new(HttpMethod.Post, "reports") { Content = JsonContent.Create(new ReportRequest(context.Data.ReportName)) };
+
+  protected override async Task<PollResult> ReadStatusAsync(
+    StepContext<ReportGenerationData> context,
+    HttpResponseMessage response,
+    CancellationToken cancellationToken)
+  {
+    var report = await response.Content.ReadFromJsonAsync<ReportResponse>(cancellationToken);
+    if (report?.Status == "failed")
+      return PollResult.Failed($"The report failed: {report.Error}");
+    context.Data.DownloadUrl = report?.DownloadUrl;
+    return PollResult.Succeeded();
+  }
+}` },
+      ],
+    },
+    {
+      id: "compensation",
+      group: "Define",
+      title: "Compensation",
+      summary: "When a step fails (or times out, or the saga is cancelled), every step that succeeded is compensated, latest first.",
+      points: [
+        "Override CompensateAsync. It runs at least once, so make it idempotent; its key ends with :compensate.",
+        "Failed compensations are retried with CompensationRetry, then marked CompensationFailed; the others still run and the saga ends Failed.",
+        "ContinueOnError on a step means its failure doesn't compensate the saga.",
+      ],
+      code: [
+        { label: "Saga Configure", lang: "cs", code: `protected override void Configure(ISagaBuilder<CustomerOnboardingData> saga) => saga
+  .Step<ReserveAccountStep>()                        // compensates by deleting the account
+  .Step<VerifyIdentityStep>()
+  .Step<ActivateAccountStep>()
+  .Step<SendWelcomeEmailStep>(configure: step =>
+  {
+    step.ContinueOnError = true;                     // a bounced email doesn't undo the onboarding
+    step.CompensationRetry = new RetryOptions { MaxAttempts = 20 };
+  });` },
+        { label: "Step state for compensation", lang: "cs", code: `public override async Task CompensateAsync(StepContext<ReportGenerationData> context, CancellationToken cancellationToken)
+{
+  // A polling step's operation is in the step state; here, the report's status URL.
+  if (!context.TryGetState<HttpPollingOperation>(out var operation))
+    return;
+  using var request = new HttpRequestMessage(HttpMethod.Delete, operation.StatusUri);
+  using var response = await _httpClientFactory.CreateClient(ClientName).SendAsync(request, cancellationToken);
+  SagaHttp.ThrowIfFailed(response);
+}` },
+      ],
+    },
+    {
+      id: "retries",
+      group: "Define",
+      title: "Retries, timeouts and state",
+      summary: "Transient failures are retried durably; timeouts come from stored times; steps can keep their own state between runs.",
+      points: [
+        "Retry: MaxAttempts, InitialDelay, MaxDelay, Multiplier, UseJitter (saga level, overridable per step).",
+        "StepOptions.Timeout counts across retries and polls from the first start; ExecutionTimeout bounds one call; SagaOptions.MaxDuration bounds the saga.",
+        "context.SetState / TryGetState / ClearState store a small serializable value with the step.",
+      ],
+      code: [
+        { label: "Options in code", lang: "cs", code: `.AddSaga<OrderSaga, OrderData>("orders", saga =>
+{
+  saga.MaxDuration = TimeSpan.FromDays(3);
+  saga.Retry = new RetryOptions { MaxAttempts = 8, InitialDelay = TimeSpan.FromSeconds(10), MaxDelay = TimeSpan.FromMinutes(15), UseJitter = true };
+})` },
+        { label: "A step that fails permanently", lang: "cs", code: `if (response.StatusCode == HttpStatusCode.Conflict)
+  throw new StepFailedException("The order was already shipped.");` },
+        { label: "Step state", lang: "cs", code: `if (!context.TryGetState<string>(out var uploadId))
+{
+  uploadId = await _storage.BeginUploadAsync(context.IdempotencyKey, cancellationToken);
+  context.SetState(uploadId);
+}` },
+      ],
+    },
+    {
+      id: "start",
+      group: "Run",
+      title: "Start, read and cancel",
+      summary: "ISagaClient starts sagas (typed or JSON data), reads their snapshot and history, and requests cancellation. The app exposes it over HTTP.",
+      points: [
+        "A correlation ID makes the start idempotent: the same ID returns the existing saga (Outcome Duplicate).",
+        "SagaStartResult.Outcome is Created, Duplicate or AlreadyRunning; SagaId is the new or existing saga.",
+        "CancelAsync returns Requested, AlreadyRequested, NotCancellable or NotFound.",
+      ],
+      code: [
+        { label: "From code", lang: "cs", code: `var result = await sagaClient.StartAsync(ReportGenerationSaga.Name, data, correlationId: "monthly-sales-2026-10");
+if (result.Outcome == SagaStartOutcome.AlreadyRunning)
+  logger.LogInformation("A report is already running: {SagaId}", result.SagaId);
+
+var snapshot = await sagaClient.GetAsync(result.SagaId);
+var history = await sagaClient.GetHistoryAsync(result.SagaId);
+var cancel = await sagaClient.CancelAsync(result.SagaId);` },
+        { label: "HTTP API", lang: "http", code: `POST /sagas/report-generation
+Content-Type: application/json
+
+{ "correlationId": "monthly-sales-2026-10", "data": { "reportName": "Monthly sales", "recipients": ["finance@example.test"] } }
+
+# 202 { sagaId, created, outcome, statusUrl }, 409 when AlreadyRunning, 400 invalid data, 404 unknown type
+GET /sagas/{id}
+GET /sagas/{id}/history
+POST /sagas/{id}/cancel` },
+      ],
+    },
+    {
+      id: "single",
+      group: "Run",
+      title: "Single-instance sagas",
+      summary: "SingleInstance allows at most one active saga of a type. The store enforces it with a unique key, across instances and racing starts.",
+      points: [
+        "A start while one is active returns it as AlreadyRunning (API 409) and the new data isn't used.",
+        "FailedBlocksNewStarts (default true): a Failed saga keeps blocking until an operator releases it.",
+        "A repeated correlation ID is checked first and still returns Duplicate.",
+      ],
+      code: [
+        { label: "Program.cs", lang: "cs", code: `.AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name, saga =>
+{
+  saga.SingleInstance = true;
+  saga.FailedBlocksNewStarts = false;   // let the next one start as soon as one fails
+})` },
+        { label: "appsettings.json", lang: "json", code: `"Sagas": { "report-generation": { "SingleInstance": true, "FailedBlocksNewStarts": true } }` },
+        { label: "Release a failed saga (SQL)", lang: "sql", code: `UPDATE saga.Sagas SET ActiveInstanceKey = NULL WHERE Id = '<saga id>' AND Status = 'Failed'` },
+      ],
+    },
+    {
+      id: "schedule",
+      group: "Run",
+      title: "CRON schedules",
+      summary: "AddSchedule starts a saga on a CRON schedule. Every instance runs the scheduler; the correlation ID makes each occurrence start one saga.",
+      points: [
+        "Five fields (minute hour day-of-month month day-of-week) or six with seconds; lists, ranges, steps, names, @daily-style macros.",
+        "TimeZone (IANA or Windows id, default UTC), Enabled, MisfireThreshold (default 1 hour): set in code, overridden by Schedules:{name}.",
+        "Only the latest missed occurrence starts after downtime; an occurrence blocked by SingleInstance is skipped.",
+      ],
+      code: [
+        { label: "Program.cs", lang: "cs", code: `.AddSchedule("nightly-sales", ReportGenerationSaga.Name, "0 2 * * *", occurrence => new ReportGenerationData
+{
+  ReportName = $"Daily sales {occurrence.ScheduledAtUtc.AddDays(-1):yyyy-MM-dd}",
+  Recipients = ["finance@example.test"],
+}, schedule => schedule.TimeZone = "Europe/Lisbon")` },
+        { label: "appsettings.json", lang: "json", code: `"Schedules": {
+  "nightly-sales": { "Cron": "0 2 * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00" }
+}` },
+      ],
+    },
+    {
+      id: "hooks",
+      group: "Extend",
+      title: "Hooks and observers",
+      summary: "React to the end of a saga with OnCompletedAsync / OnFailedAsync, or to every event with an ISagaLifecycleObserver.",
+      points: [
+        "Both run after the save, at most once; exceptions are logged and never affect the saga.",
+        "OnFailedAsync gets the SagaFailure (Kind, StepName, Error); Status is Compensated or Failed.",
+        "For guaranteed delivery, read SagaHistory or add an outbox.",
+      ],
+      code: [
+        { label: "Saga hooks", lang: "cs", code: `protected override ValueTask OnFailedAsync(SagaContext<OrderData> context, SagaFailure failure, CancellationToken cancellationToken)
+{
+  if (context.Status == SagaStatus.Failed)
+    _alerts.Raise($"Order {context.Data.OrderId} needs manual action: {failure.Error}");
+  return ValueTask.CompletedTask;
+}` },
+        { label: "Observer", lang: "cs", code: `public sealed class AlertingObserver : ISagaLifecycleObserver
+{
+  private readonly IAlerts _alerts;
+
+  public AlertingObserver(IAlerts alerts)
+  {
+    _alerts = alerts;
+  }
+
+  public ValueTask OnEventAsync(SagaHistoryEntry entry, CancellationToken cancellationToken)
+  {
+    if (entry.EventType == SagaEventType.Failed)
+      _alerts.Raise($"Saga {entry.SagaType} {entry.SagaId} needs manual action.");
+    return ValueTask.CompletedTask;
+  }
+}
+
+// Program.cs
+.AddObserver<AlertingObserver>()` },
+      ],
+    },
+    {
+      id: "policies",
+      group: "Extend",
+      title: "Retry policy and backoff",
+      summary: "Replace IRetryPolicy to decide which exceptions are retried, or IBackoffStrategy to change the delay curve.",
+      points: [
+        "IRetryPolicy.Evaluate(RetryContext) returns RetryDecision.After(delay) or RetryDecision.Stop.",
+        "RetryContext has SagaType, StepName, FailureCount, Exception, Options and IsCompensation.",
+        "IBackoffStrategy.GetDelay(attempt, options) is used for retries and polling.",
+      ],
+      code: [
+        { label: "NoRetryOnAuthPolicy.cs", lang: "cs", code: `public sealed class NoRetryOnAuthPolicy : IRetryPolicy
+{
+  private readonly DefaultRetryPolicy _default;
+
+  public NoRetryOnAuthPolicy(IBackoffStrategy backoff)
+  {
+    _default = new DefaultRetryPolicy(backoff);
+  }
+
+  public RetryDecision Evaluate(RetryContext context) =>
+    context.Exception is UnauthorizedAccessException ? RetryDecision.Stop : _default.Evaluate(context);
+}
+
+// Program.cs
+.UseRetryPolicy<NoRetryOnAuthPolicy>()
+.UseBackoffStrategy<MyBackoffStrategy>()` },
+      ],
+    },
+    {
+      id: "serialization",
+      group: "Extend",
+      title: "Serialization",
+      summary: "Saga data and step state are JSON text, written with System.Text.Json: source-generated contexts first, reflection as fallback.",
+      points: [
+        "Add your context with ConfigureSerializer.",
+        "Replace the serializer entirely with UseSerializer<T>() and your ISagaSerializer.",
+        "Keep data small: it is saved after every step.",
+      ],
+      code: [
+        { label: "Program.cs", lang: "cs", code: `.ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default))
+
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true)]
+[JsonSerializable(typeof(ReportGenerationData))]
+internal sealed partial class AppJsonContext : JsonSerializerContext;` },
+      ],
+    },
+    {
+      id: "stores",
+      group: "Operate",
+      title: "Stores",
+      summary: "SQL Server out of the box, any EF Core relational provider with your own migrations, or the in-memory store for tests.",
+      points: [
+        "UseSqlServer adds the provider, migrations and the locking claim (UPDLOCK, READPAST).",
+        "UseEntityFrameworkCore takes any provider; register an ISagaClaimStrategy for a locking claim.",
+        "A custom store implements ISagaRepository and ISagaWorkQueue and must pass SagaStoreContractTests.",
+      ],
+      code: [
+        { label: "SQL Server", lang: "cs", code: `.UseSqlServer(configuration.GetSection("NativeOrchestrator:SqlServer"), sql => sql.ConnectionString = connectionString)` },
+        { label: "Another EF Core provider", lang: "cs", code: `.UseEntityFrameworkCore((services, options) => options
+  .UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly("MyCompany.Sagas.Postgres")))` },
+        { label: "Tests", lang: "cs", code: `services.AddNativeOrchestrator()
+  .AddSaga<OrderSaga, OrderData>("orders")
+  .UseInMemoryStore();` },
+        { label: "Migrations", lang: "sh", code: `dotnet tool restore
+dotnet ef migrations add <Name> --project src/NativeOrchestrator.SqlServer
+dotnet ef migrations script --idempotent --project src/NativeOrchestrator.SqlServer -o saga.sql` },
+      ],
+    },
+    {
+      id: "observability",
+      group: "Operate",
+      title: "Observability",
+      summary: "Source-generated logs, a Meter and an ActivitySource, all named NativeOrchestrator, plus a database health check in the app.",
+      points: [
+        "Metrics: nativeorchestrator.steps, nativeorchestrator.step.duration, nativeorchestrator.sagas.finished, nativeorchestrator.schedule.occurrences.",
+        "Activity saga.run with saga.id, saga.type and saga.status tags.",
+        "SagaHistory keeps every event; the API serves it at GET /sagas/{id}/history.",
+      ],
+      code: [
+        { label: "OpenTelemetry", lang: "cs", code: `builder.Services.AddOpenTelemetry()
+  .WithTracing(tracing => tracing.AddSource(NativeOrchestratorDiagnostics.ActivitySourceName))
+  .WithMetrics(metrics => metrics.AddMeter(NativeOrchestratorDiagnostics.MeterName));` },
+      ],
+    },
+    {
+      id: "testing",
+      group: "Operate",
+      title: "Testing sagas",
+      summary: "Tests run on a FakeTimeProvider with no worker: SagaTestHost (tests/Shared) claims and runs sagas run by run and jumps the clock, so multi-day sagas run in milliseconds.",
+      points: [
+        "Describe steps with a SagaShape and their behaviour with a Script.",
+        "RunUntilFinishedAsync, RunUntilWaitingAsync, RunDueAsync and RunSchedulesAsync drive the engine and scheduler.",
+        "SQL Server tests use Testcontainers and are skipped with a reason without Docker.",
+      ],
+      code: [
+        { label: "A test", lang: "cs", code: `[Fact]
+public async Task A_failed_step_compensates_the_succeeded_ones()
+{
+  await using var host = SagaTestHost.Create(new SagaShape().Step("A").Step("B"));
+  host.Script.Execute["B"] = _ => StepResult.Failure("No.");
+
+  var saga = await host.RunUntilFinishedAsync(await host.StartAsync());
+
+  Assert.Equal(SagaStatus.Compensated, saga.Status);
+  Assert.Equal(["A@1", "B@1", "undo:A@1"], host.Script.Journal);
+}` },
+      ],
+    },
+  ],
+
+  configuration: [
+    ["NativeOrchestrator", "WorkerEnabled", "true", "Runs the worker and scheduler in this instance."],
+    ["NativeOrchestrator", "MaxConcurrency", "16", "Sagas run at once per instance."],
+    ["NativeOrchestrator", "ScanInterval", "00:00:05", "How often the worker looks for due sagas; also the scheduler's retry delay."],
+    ["NativeOrchestrator", "LeaseDuration / LeaseRenewalInterval", "5 min / 1 min", "How long a claim lasts and how often it is renewed."],
+    ["NativeOrchestrator", "UnknownSagaTypeRetryDelay", "00:05:00", "Delay for a claimed saga whose type isn't registered (rolling deployments)."],
+    ["NativeOrchestrator", "MaxErrorLength", "4000", "Longer error messages are truncated."],
+    ["SagaDefaults / Sagas:{name}", "MaxDuration", "7 days", "The saga times out and compensates after this."],
+    ["SagaDefaults / Sagas:{name}", "StepTimeout / ExecutionTimeout", "24 h / 2 min", "Per step across retries and polls / per call."],
+    ["SagaDefaults / Sagas:{name}", "Retry", "8 attempts…", "MaxAttempts, InitialDelay, MaxDelay, Multiplier, UseJitter."],
+    ["SagaDefaults / Sagas:{name}", "Polling", "30 s → 10 min", "InitialDelay, MaxDelay, Multiplier for polling steps."],
+    ["SagaDefaults / Sagas:{name}", "CompensationRetry", "10 attempts", "Retries of a compensation before CompensationFailed."],
+    ["SagaDefaults / Sagas:{name}", "SingleInstance / FailedBlocksNewStarts", "false / true", "One active saga of the type; whether a failed one keeps blocking."],
+    ["Sagas:{name}:Steps:{step}", "Timeout, ExecutionTimeout, ContinueOnError, Retry, Polling, CompensationRetry", "from the saga", "Per-step overrides; configuration wins over code."],
+    ["Schedules:{name}", "Cron, TimeZone, Enabled, MisfireThreshold", "code, UTC, true, 1 h", "Read at every wake-up, so changes apply without a restart."],
+    ["NativeOrchestrator:SqlServer", "CommandTimeout, MaxRetryCount, UseLockingClaim, ApplyMigrationsOnStartup", "30 s, 6, true, false", "SQL Server store options."],
+  ],
+};
+
+/* =====================================================================================================================
+   Layout code: renders DOCS. It shouldn't need changes when content changes.
+   ===================================================================================================================== */
+(function () {
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const el = (tag, attrs = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === "text") node.textContent = value;
+      else if (key === "html") node.innerHTML = value;
+      else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+      else node.setAttribute(key, value);
+    }
+    for (const child of [].concat(children)) if (child) node.append(child);
+    return node;
+  };
+
+  // Theme
+  const storage = {
+    get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+    set(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } },
+  };
+  const root = document.documentElement;
+  const saved = storage.get("no-docs-theme");
+  if (saved === "light" || saved === "dark") root.dataset.theme = saved;
+  const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  $("#theme").addEventListener("click", () => {
+    root.dataset.theme = isDark() ? "light" : "dark";
+    storage.set("no-docs-theme", root.dataset.theme);
+    renderAllDiagrams();
+  });
+
+  // Code highlighting (escapes everything it doesn't wrap).
+  const escapeHtml = text => text.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const KEYWORDS = "public|private|protected|internal|sealed|abstract|override|virtual|static|readonly|partial|class|record|interface|new|return|var|async|await|using|namespace|if|else|is|not|null|true|false|this|base|foreach|in|throw|string|int|bool|void|where|get|set|switch|typeof|UPDATE|SET|WHERE|AND|NULL|POST|GET";
+  const TOKENS = new RegExp(`(//[^\\n]*|#[^\\n]*)|(\\$?"(?:[^"\\\\\\n]|\\\\.)*")|\\b(${KEYWORDS})\\b|\\b(\\d+(?:\\.\\d+)?)\\b`, "g");
+  function highlight(code, lang) {
+    let out = "";
+    let last = 0;
+    for (const match of code.matchAll(TOKENS)) {
+      const [text, comment, str, keyword, number] = match;
+      if (comment && comment.startsWith("#") && lang !== "sh" && lang !== "http") continue;
+      out += escapeHtml(code.slice(last, match.index));
+      const cls = comment ? "tok-com" : str ? "tok-str" : keyword ? "tok-key" : number ? "tok-num" : "";
+      out += `<span class="${cls}">${escapeHtml(text)}</span>`;
+      last = match.index + text.length;
+    }
+    return out + escapeHtml(code.slice(last));
+  }
+  function codeBlock({ label, lang, code }) {
+    const pre = el("pre", {}, el("code", { html: highlight(code, lang) }));
+    const copy = el("button", { class: "icon-btn copy", type: "button", text: "Copy" });
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(code); copy.textContent = "Copied"; } catch { copy.textContent = "Select and copy"; }
+      setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+    });
+    return el("div", { class: "code" }, [el("div", { class: "label", text: label }), pre, copy]);
+  }
+
+  // Diagrams
+  const diagramSources = new Map();
+  let diagramCounter = 0;
+  function diagramHost(id, source) {
+    const host = el("div", { class: "diagram", "data-diagram": id });
+    diagramSources.set(id, source);
+    return host;
+  }
+  // Mermaid renders one diagram at a time; concurrent renders interfere.
+  let renderQueue = Promise.resolve();
+  function renderDiagram(host) {
+    renderQueue = renderQueue.then(() => renderNow(host));
+    return renderQueue;
+  }
+  function configureMermaid() {
+    if (!window.mermaid) return;
+    window.mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: isDark() ? "dark" : "neutral",
+      fontFamily: getComputedStyle(document.body).fontFamily,
+      flowchart: { htmlLabels: true, curve: "basis" },
+      sequence: { mirrorActors: false },
+    });
+  }
+  async function renderNow(host) {
+    const id = host.dataset.diagram;
+    const source = diagramSources.get(id) ?? DOCS.diagrams[id];
+    if (!source) return;
+    if (!window.mermaid) {
+      host.replaceChildren(el("pre", { class: "card", text: source }));
+      return;
+    }
+    try {
+      const { svg } = await window.mermaid.render(`mmd-${id}-${diagramCounter++}`, source);
+      host.innerHTML = svg;
+    } catch (error) {
+      host.replaceChildren(el("pre", { text: `Diagram error: ${error.message}\n\n${source}` }));
+    }
+  }
+  function renderAllDiagrams() {
+    configureMermaid();
+    document.querySelectorAll("[data-diagram]").forEach(host => { if (!host.closest("[hidden]")) renderDiagram(host); });
+  }
+  configureMermaid();
+
+  // Overview
+  $("#stats").append(...DOCS.stats.map(s => el("div", { class: "card stat" }, [el("b", { text: s.value }), el("span", { text: s.label })])));
+
+  // Principles
+  $("#principle-grid").append(...DOCS.principles.map(p => el("div", { class: "card principle", "data-search": `${p.title} ${p.text} ${p.how}` }, [
+    el("div", { class: "rule", text: p.rule }),
+    el("h3", { text: p.title }),
+    el("p", { text: p.text }),
+    el("div", { class: "how", text: p.how }),
+  ])));
+
+  // Tabbed diagram sections
+  function tabbed(tabsEl, panelEl, items, prefix) {
+    const panels = items.map(item => {
+      const notes = el("div", { class: "notes" }, [el("h3", { text: "Notes" }), el("ul", {}, item.notes.map(n => el("li", { text: n })))]);
+      return el("div", { class: "panel-grid", hidden: "", "data-search": `${item.title} ${item.notes.join(" ")}` }, [diagramHost(`${prefix}-${item.id}`, item.diagram), notes]);
+    });
+    panelEl.append(...panels);
+    const tabs = items.map((item, index) => el("button", {
+      class: "tab", type: "button", role: "tab", "aria-selected": "false", text: item.title,
+      onclick: () => select(index),
+    }));
+    tabsEl.append(...tabs);
+    function select(index) {
+      tabs.forEach((tab, i) => tab.setAttribute("aria-selected", String(i === index)));
+      panels.forEach((panel, i) => { panel.hidden = i !== index; });
+      renderDiagram(panels[index].querySelector("[data-diagram]"));
+    }
+    select(0);
+  }
+  tabbed($("#workflow-tabs"), $("#workflow-panel"), DOCS.workflows, "wf");
+  tabbed($("#activity-tabs"), $("#activity-panel"), DOCS.activities, "act");
+
+  // Dependency tree
+  const types = new Map(DOCS.types.map(t => [t.name, t]));
+  function badges(type) {
+    return [
+      el("span", { class: `badge ${type.vis}`, text: type.vis }),
+      el("span", { class: `badge ${type.kind === "interface" ? "interface" : ""}`, text: type.kind }),
+      el("span", { class: "badge asm", text: type.asm }),
+    ];
+  }
+  function treeNode(name, path) {
+    const type = types.get(name);
+    const children = type ? [...(type.impl ?? []).map(n => ({ n, label: "implemented by" })), ...(type.deps ?? []).map(n => ({ n, label: "" }))] : [];
+    const details = el("details", { "data-type": name });
+    const summary = el("summary", {}, [el("span", { class: "name", text: name }), ...(type ? badges(type) : []), type ? el("span", { class: "role", text: type.role }) : null]);
+    details.append(summary);
+    if (children.length === 0) details.classList.add("leaf");
+    let built = false;
+    details.build = () => {
+      if (built) return;
+      built = true;
+      for (const { n, label } of children) {
+        if (path.includes(n)) {
+          details.append(el("div", { class: "cycle", text: `${n} (already above)` }));
+          continue;
+        }
+        const child = treeNode(n, [...path, n]);
+        if (label) child.querySelector("summary").prepend(el("span", { class: "role", text: `${label} →` }));
+        details.append(child);
+      }
+    };
+    details.addEventListener("toggle", () => { if (details.open) details.build(); });
+    return details;
+  }
+  const tree = $("#tree");
+  DOCS.types.filter(t => t.root).forEach(t => tree.append(treeNode(t.name, [t.name])));
+  $("#tree-expand").addEventListener("click", () => {
+    // Children are built when a node opens; open level by level, a few levels deep.
+    for (let level = 0; level < 5; level++) {
+      tree.querySelectorAll("details:not([open]):not(.leaf)").forEach(d => {
+        d.build();
+        d.open = true;
+      });
+    }
+  });
+  $("#tree-collapse").addEventListener("click", () => tree.querySelectorAll("details[open]").forEach(d => { d.open = false; }));
+
+  const typeIndex = $("#type-index");
+  const usedBy = new Map();
+  DOCS.types.forEach(t => [...(t.deps ?? []), ...(t.impl ?? [])].forEach(d => usedBy.set(d, [...(usedBy.get(d) ?? []), t.name])));
+  const indexItems = DOCS.types.slice().sort((a, b) => a.name.localeCompare(b.name)).map(t => {
+    const item = el("div", { class: "card item", id: `type-${t.name.replace(/[^A-Za-z0-9]/g, "")}`, "data-search": `${t.name} ${t.role} ${t.asm}` }, [
+      el("div", { class: "name", text: t.name }),
+      el("div", { class: "meta", text: `${t.vis} ${t.kind} · ${t.asm}` }),
+      el("div", { text: t.role }),
+    ]);
+    const links = (title, names) => names?.length ? el("div", {}, [el("span", { class: "meta", text: `${title}: ` }), ...names.map(n => el("button", {
+      class: "chip-link", type: "button", text: n, onclick: () => jump(n),
+    }))]) : null;
+    item.append(...[links("Depends on", t.deps), links("Implemented by", t.impl), links("Used by", usedBy.get(t.name))].filter(Boolean));
+    return item;
+  });
+  typeIndex.append(...indexItems);
+  function jump(name) {
+    const target = document.getElementById(`type-${name.replace(/[^A-Za-z0-9]/g, "")}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.remove("flash");
+    void target.offsetWidth;
+    target.classList.add("flash");
+  }
+
+  // Features
+  const featureList = $("#feature-list");
+  const featurePanel = $("#feature-panel");
+  const featureButtons = [];
+  let currentGroup = null;
+  DOCS.features.forEach((feature, index) => {
+    if (feature.group !== currentGroup) {
+      currentGroup = feature.group;
+      featureList.append(el("div", { class: "fgroup", text: currentGroup }));
+    }
+    const button = el("button", {
+      type: "button", role: "tab", "aria-selected": "false", text: feature.title,
+      "data-search": `${feature.title} ${feature.summary} ${feature.points.join(" ")} ${feature.code.map(c => c.code).join(" ")}`,
+      onclick: () => selectFeature(index, true),
+    });
+    featureButtons.push(button);
+    featureList.append(button);
+  });
+  function selectFeature(index, updateHash) {
+    const feature = DOCS.features[index];
+    featureButtons.forEach((b, i) => b.setAttribute("aria-selected", String(i === index)));
+    featurePanel.replaceChildren(
+      el("h3", { text: feature.title, style: "font-size:19px" }),
+      el("p", { class: "summary", text: feature.summary }),
+      el("ul", {}, feature.points.map(p => el("li", { text: p }))),
+      ...(feature.callout ? [el("div", { class: "callout", text: feature.callout })] : []),
+      ...feature.code.map(codeBlock),
+    );
+    if (updateHash) history.replaceState(null, "", `#feature-${feature.id}`);
+  }
+  const hashFeature = location.hash.startsWith("#feature-") ? DOCS.features.findIndex(f => `#feature-${f.id}` === location.hash) : -1;
+  selectFeature(Math.max(0, hashFeature), false);
+  if (hashFeature >= 0) $("#features").scrollIntoView();
+
+  // Configuration
+  const table = $("#config-table");
+  table.append(el("thead", {}, el("tr", {}, ["Section", "Option", "Default", "Meaning"].map(h => el("th", { text: h })))));
+  table.append(el("tbody", {}, DOCS.configuration.map(row => el("tr", { "data-search": row.join(" ") }, row.map((cell, i) => el("td", {}, i < 2 ? el("code", { text: cell }) : document.createTextNode(cell)))))));
+
+  // Search: filters principles, diagram tabs' notes, features, types and configuration rows.
+  const search = $("#search");
+  search.addEventListener("input", () => {
+    const query = search.value.trim().toLowerCase();
+    const matches = node => !query || (node.dataset.search ?? node.textContent).toLowerCase().includes(query);
+    document.querySelectorAll(".principle, .index .item, #config-table tbody tr").forEach(node => { node.hidden = !matches(node); });
+    featureButtons.forEach(b => { b.hidden = !matches(b); });
+    const firstFeature = featureButtons.findIndex(b => !b.hidden);
+    if (query && firstFeature >= 0 && featureButtons.every(b => b.getAttribute("aria-selected") !== "true" || b.hidden)) selectFeature(firstFeature, false);
+    tree.querySelectorAll("details").forEach(d => d.classList.toggle("hit", Boolean(query) && d.dataset.type.toLowerCase().includes(query)));
+  });
+
+  // Active section in the navigation
+  const links = [...document.querySelectorAll("nav.side a")];
+  const sections = [...document.querySelectorAll("main section")];
+  function markActive() {
+    let current = sections[0];
+    for (const section of sections) if (section.getBoundingClientRect().top < 140) current = section;
+    links.forEach(a => a.classList.toggle("active", a.getAttribute("href") === `#${current.id}`));
+  }
+  addEventListener("scroll", markActive, { passive: true });
+  markActive();
+
+  renderAllDiagrams();
+})();
+</script>
+</body>
+</html>

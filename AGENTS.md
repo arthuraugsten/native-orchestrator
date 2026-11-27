@@ -33,11 +33,12 @@ Each line is a deliberate choice. Change one only on purpose, and update this ta
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Solution              | Separate `NativeOrchestrator.slnx`; central package versions; warnings as errors; code style enforced in the build                                                                                                                                                                                | Independent of the Durable Functions pilot it started next to.                                                                                                                                                |
 | Hosting               | One ASP.NET Core process runs the HTTP API and the worker. `WorkerEnabled: false` turns the worker off.                                                                                                                                                                                           | Simplest to deploy. Any number of instances share the database.                                                                                                                                               |
-| Triggers              | HTTP only (`POST /sagas/{type}`)                                                                                                                                                                                                                                                                  | Agreed scope. Queue triggers are a possible follow-up.                                                                                                                                                        |
+| Triggers              | HTTP (`POST /sagas/{type}`) and CRON schedules declared at setup (`AddSchedule`).                                                                                                                                                                                                                 | Agreed scope. Queue triggers are a possible follow-up.                                                                                                                                                        |
 | Persistence           | EF Core; one short-lived `DbContext` per operation through `IDbContextFactory`                                                                                                                                                                                                                    | Database-agnostic, and no connection stays open while a saga waits.                                                                                                                                           |
 | Persistence model     | `SagaRecord`/`StepRecord` live in Core. Leases are EF **shadow properties**, so Core's model has no store details. Enums are stored as strings; data and step state as JSON text.                                                                                                                 | Core stays free of persistence concerns. Rows are readable in SQL. JSON text works on every provider.                                                                                                         |
 | Schema                | Fixed `saga` schema; tables `Sagas`, `SagaSteps`, `SagaHistory`; unique `(SagaType, CorrelationId)` (filtered for nulls on SQL Server); index `(Status, NextRunAtUtc)`                                                                                                                            | A configurable schema conflicts with generated migrations.                                                                                                                                                    |
 | Single instance       | Opt-in `SingleInstance` (on for `report-generation`). The client sets `SagaRecord.ActiveInstanceKey` = saga type, unique where set. `SagaRun.Finish` clears it, but keeps it on `Failed` while `FailedBlocksNewStarts` (default on). A blocked start gets the holder as `AlreadyRunning`.         | The database enforces it across instances and racing starts. A failed saga needs manual action, so by default the next one waits until an operator clears the key.                                            |
+| Scheduling            | Stateless: each instance computes occurrences (own parser in Core) and starts the latest due one with correlation ID `schedule:{name}:{time}`. Missed ones start only within `MisfireThreshold` (1 h); one blocked by `SingleInstance` is skipped.                                                | The correlation index already gives exactly-once starts across instances, so no table or lease. A parser in Core keeps runtime code free of third-party packages.                                             |
 | Execution model       | A saga advances in **runs**: claim → run steps until one must wait → save → release. It is saved after every step (checkpoint).                                                                                                                                                                   | Long sagas without memory or threads held. A crash repeats at most one step.                                                                                                                                  |
 | Delivery              | Steps run **at least once**. `context.IdempotencyKey` = `{sagaId:N}:{step}` (`:compensate` for compensation), stable across retries. The HTTP base classes send it as `Idempotency-Key`.                                                                                                          | Exactly-once isn't possible with external systems. The key lets them ignore repeats. (The first plan included the attempt number; it was dropped, because a key that changes on retry defeats deduplication.) |
 | Concurrency           | A **lease** (owner, token, expiry) for mutual exclusion, plus an `int Version` concurrency token on every save. A save needs the current token _and_ the version it read.                                                                                                                         | The lease stops two instances running the same saga. The version stops a stale save overwriting newer state.                                                                                                  |
@@ -71,6 +72,7 @@ Directory.Build.targets        # Polly guard
 Directory.Packages.props       # every package version
 .config/dotnet-tools.json      # dotnet-ef
 compose.yaml                   # local SQL Server
+docs/index.html                # interactive docs (rule 12): principles, workflows, diagrams, dependencies, examples
 src/
   NativeOrchestrator.Core/                  # no database or ASP.NET Core dependency
     Sagas/        base classes: Saga, SagaStep, PollingSagaStep, HttpSagaStep, HttpPollingSagaStep, SagaHttp
@@ -82,6 +84,7 @@ src/
     Options/      NativeOrchestratorOptions, SagaOptions, StepOptions, RetryOptions, PollingOptions, validators
     Results/      StepResult, PollResult, statuses, SagaSnapshot, exceptions
     Client/       ISagaClient, SagaClient
+    Scheduling/   CronExpression, SagaScheduler, SagaScheduleOptions, SagaScheduleRegistry, ScheduledOccurrence
     Observability/ SagaLog, SagaDiagnostics, ISagaLifecycleObserver
     Testing/      InMemorySagaStore
     DependencyInjection/  AddNativeOrchestrator, NativeOrchestratorBuilder
@@ -108,7 +111,8 @@ dotnet tool restore && dotnet ef migrations add <Name> --project src/NativeOrche
 
 **Before finishing any change:** the build passes (with no warnings, since warnings are errors), `dotnet test` passes
 with the SQL Server tests run, not skipped, and the formatting check is clean. If you changed the model, add a
-migration. If you changed behaviour, update the README.
+migration. If you changed behaviour, update the README. If the change touches anything the interactive docs cover,
+update [`docs/index.html`](docs/index.html) in the same change (rule 12).
 
 ## Code style
 
@@ -144,12 +148,22 @@ migration. If you changed behaviour, update the README.
 10. **Fail at startup on bad configuration**, with a message that says how to fix it.
 11. **Keep the public API small.** Implementation types are `internal`. Tests see internals through
     `InternalsVisibleTo`.
+12. **Keep the interactive docs current.** [`docs/index.html`](docs/index.html) documents the design principles,
+    workflows, activity diagrams, class hierarchy, dependency tree, features with examples, and configuration. Update
+    it in the same change whenever one of those changes: a rule or decision, how a saga is started, run, cancelled,
+    leased or scheduled, a status or step outcome, a base class or its members, a constructor dependency or a new
+    internal service, a public API, an option or its default, or a feature. All content is in the `DOCS` data block at
+    the end of the file (`principles`, `diagrams`, `workflows`, `activities`, `types`, `features`, `configuration`);
+    diagrams are Mermaid text. Keep the examples compiling against the real API and in the repository's code style.
+    After editing, open the page and check that every diagram renders (a parse error shows as "Diagram error").
 
 ## How to...
 
 - **Add a saga:** a `Saga<TData>` subclass plus its steps; `AddSaga<TSaga, TData>("name")`; add `TData` (and any step
   state types) to the app's `JsonSerializerContext`; optional `Sagas:{name}` configuration; demo requests in the
   `.http` file.
+- **Add a schedule:** `AddSchedule<TData>("name", "saga", "cron", occurrence => data)` after the saga's `AddSaga`;
+  optional `Schedules:{name}` configuration. Keep the name stable: it is part of each occurrence's correlation ID.
 - **Add a kind of step:** a base class in `Core/Sagas/` deriving from `SagaStep<TData>` (as `PollingSagaStep` does).
   Engine changes are only needed if it needs a new `StepResult` kind.
 - **Add an option:** a property on the options class, a check in its validator, README configuration docs, tests for
@@ -226,5 +240,8 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 - The provider-neutral claim can hand one saga to two instances under contention. It is safe (the second save is
   rejected) but repeats a step. Use the locking claim where the provider supports one.
 - Lifecycle events and saga hooks are at most once.
-- History and finished sagas grow without limit until retention exists.
+- History and finished sagas grow without limit until retention exists. Schedules add one saga per occurrence.
+- A scheduled occurrence skipped because a single-instance saga was active isn't recorded, so an instance that
+  starts within the misfire threshold may still start it late.
+- In a time zone with daylight saving, a schedule doesn't run during the repeated hour after its first pass.
 - Polly.Core 8.4.2 is present transitively through Microsoft's resilience packages.
