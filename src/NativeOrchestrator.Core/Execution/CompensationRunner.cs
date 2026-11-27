@@ -25,12 +25,12 @@ internal sealed class CompensationRunner
   public async Task<RunOutcome> CompensateNextAsync(SagaRun run, CancellationToken runToken)
   {
     var saga = run.Saga;
-    var step = LatestSucceededStep(saga);
+    var step = saga.FindLatestSucceededStep();
 
     if (step is null)
       return RunOutcome.Done;
 
-    saga.NextRunAtUtc = run.Now;
+    saga.ScheduleAt(run.Now);
     var definition = run.Runtime.FindStep(step.Name);
 
     if (definition is null)
@@ -52,8 +52,7 @@ internal sealed class CompensationRunner
     {
       _diagnostics.RecordStep(saga.SagaType, step.Name, "compensated", elapsed);
 
-      step.Status = StepStatus.Compensated;
-      step.CompensationAttempt = 0;
+      step.MarkCompensated();
 
       run.Record(SagaEventType.StepCompensated, step.Name);
 
@@ -61,13 +60,12 @@ internal sealed class CompensationRunner
     }
 
     _diagnostics.RecordStep(saga.SagaType, step.Name, "compensation-error", elapsed);
-    step.CompensationAttempt++;
-    step.Error = run.Truncate(error.Message);
-    SagaLog.CompensationAttemptFailed(_logger, error, step.Name, saga.Id, step.CompensationAttempt);
+    var attempt = step.RecordCompensationFailure(run.Truncate(error.Message));
+    SagaLog.CompensationAttemptFailed(_logger, error, step.Name, saga.Id, attempt);
 
     var decision = error is StepFailedException
       ? RetryDecision.Stop
-      : _retryPolicy.Evaluate(new RetryContext(saga.SagaType, step.Name, step.CompensationAttempt, error, options.CompensationRetry, true));
+      : _retryPolicy.Evaluate(new RetryContext(saga.SagaType, step.Name, attempt, error, options.CompensationRetry, true));
 
     if (decision.ShouldRetry)
     {
@@ -80,36 +78,12 @@ internal sealed class CompensationRunner
     return RunOutcome.Continue;
   }
 
-  public static bool AnyCompensationFailed(SagaRecord saga)
-  {
-    foreach (var step in saga.Steps)
-    {
-      if (step.Status == StepStatus.CompensationFailed)
-        return true;
-    }
-
-    return false;
-  }
-
   private void MarkFailed(SagaRun run, StepRecord step, string error)
   {
-    step.Status = StepStatus.CompensationFailed;
-    step.Error = run.Truncate(error);
+    step.MarkCompensationFailed(run.Truncate(error));
 
     run.Record(SagaEventType.StepCompensationFailed, step.Name, step.Error);
 
     SagaLog.CompensationFailed(_logger, step.Name, run.Saga.Id);
-  }
-
-  private static StepRecord? LatestSucceededStep(SagaRecord saga)
-  {
-    StepRecord? latest = null;
-    foreach (var step in saga.Steps)
-    {
-      if (step.Status == StepStatus.Succeeded && (latest is null || step.StepIndex > latest.StepIndex))
-        latest = step;
-    }
-
-    return latest;
   }
 }

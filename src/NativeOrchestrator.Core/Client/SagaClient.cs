@@ -81,18 +81,8 @@ internal sealed class SagaClient : ISagaClient
       throw new ArgumentException($"The correlation ID must be 1 to {MaxCorrelationIdLength} characters.", nameof(correlationId));
 
     var now = _timeProvider.GetUtcNow();
-    var saga = new SagaRecord
-    {
-      Id = Guid.CreateVersion7(now),
-      SagaType = sagaType,
-      CorrelationId = correlationId,
-      ActiveInstanceKey = _sagaOptions.Get(sagaType).SingleInstance ? sagaType : null,
-      Status = SagaStatus.Pending,
-      DataJson = dataJson,
-      CreatedAtUtc = now,
-      UpdatedAtUtc = now,
-      NextRunAtUtc = now,
-    };
+    var activeInstanceKey = _sagaOptions.Get(sagaType).SingleInstance ? sagaType : null;
+    var saga = SagaRecord.Create(Guid.CreateVersion7(now), sagaType, correlationId, activeInstanceKey, dataJson, now);
     var created = new SagaHistoryEntry(saga.Id, sagaType, now, SagaEventType.Created, null, correlationId is null ? null : $"Correlation ID: {correlationId}");
 
     try
@@ -143,7 +133,7 @@ internal sealed class SagaClient : ISagaClient
       return null;
 
     if (saga.Status == SagaStatus.Compensating)
-      return saga.Steps.Where(s => s.Status == StepStatus.Succeeded).MaxBy(s => s.StepIndex)?.Name;
+      return saga.FindLatestSucceededStep()?.Name;
 
     if (_registry.TryGet(saga.SagaType, out var runtime) && saga.CurrentStepIndex < runtime.Steps.Count)
       return runtime.Steps[saga.CurrentStepIndex].Name;

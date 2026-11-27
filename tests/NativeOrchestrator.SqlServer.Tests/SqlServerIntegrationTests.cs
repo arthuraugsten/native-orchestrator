@@ -101,15 +101,8 @@ public sealed class SqlServerIntegrationTests
     var now = DateTimeOffset.UtcNow;
     for (var i = 0; i < 60; i++)
     {
-      var saga = new SagaRecord
-      {
-        Id = Guid.CreateVersion7(),
-        SagaType = "contended",
-        DataJson = "{}",
-        CreatedAtUtc = now,
-        UpdatedAtUtc = now,
-        NextRunAtUtc = now.AddSeconds(-i),
-      };
+      var saga = SagaRecord.Create(Guid.CreateVersion7(), "contended", null, null, "{}", now);
+      saga.ScheduleAt(now.AddSeconds(-i));
       await repository.CreateAsync(saga, new SagaHistoryEntry(saga.Id, saga.SagaType, now, SagaEventType.Created, null, null), TestContext.Current.CancellationToken);
     }
 

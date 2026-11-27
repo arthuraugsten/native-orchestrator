@@ -228,6 +228,10 @@ Options are bound from configuration and validated at startup. Each level overri
 | Clock | Register a `TimeProvider` |
 
 A new store must pass `SagaStoreContractTests`: derive a test class from it, as the in-memory and SQL Server tests do.
+`SagaRecord` and `StepRecord` have private setters, because only the engine changes them. A store that doesn't use EF
+Core rebuilds them from its rows with `SagaRecord.Restore(...)` and `StepRecord.Restore(...)`, and calls
+`saga.IncrementVersion()` after a successful save. `saga.RequestCancellation(nowUtc)` applies the cancellation rules
+for a store that changes sagas in memory.
 
 ## SQL Server store
 

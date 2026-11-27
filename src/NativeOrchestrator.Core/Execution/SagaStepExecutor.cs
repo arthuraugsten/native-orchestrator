@@ -34,19 +34,11 @@ internal sealed class SagaStepExecutor
     var step = saga.FindStep(definition.Index);
     if (step is null)
     {
-      step = new StepRecord
-      {
-        StepIndex = definition.Index,
-        Name = definition.Name,
-        Status = StepStatus.InProgress,
-        StartedAtUtc = run.Now,
-      };
-      saga.Steps.Add(step);
+      step = saga.StartStep(definition.Index, definition.Name, run.Now);
       run.Record(SagaEventType.StepStarted, step.Name);
     }
 
-    saga.Status = SagaStatus.Running;
-    saga.NextRunAtUtc = run.Now;
+    saga.Resume(run.Now);
 
     var deadline = step.StartedAtUtc + options.Timeout;
     if (run.Now >= deadline)
@@ -77,24 +69,19 @@ internal sealed class SagaStepExecutor
     {
       case StepResultKind.Success:
         _diagnostics.RecordStep(saga.SagaType, step.Name, "succeeded", elapsed);
-        step.Status = StepStatus.Succeeded;
-        step.CompletedAtUtc = run.Now;
-        step.Attempt = 0;
-        step.Error = null;
-        saga.CurrentStepIndex++;
+        step.Succeed(run.Now);
+        saga.MoveToNextStep();
         run.Record(SagaEventType.StepSucceeded, step.Name);
         return RunOutcome.Continue;
 
       case StepResultKind.Poll:
         _diagnostics.RecordStep(saga.SagaType, step.Name, "polled", elapsed);
-        step.Attempt = 0;
-        step.Error = null;
-        step.CheckCount++;
-        if (step.CheckCount == 1)
+        var checkCount = step.RecordCheck();
+        if (checkCount == 1)
           run.Record(SagaEventType.StepWaiting, step.Name);
         var delay = result.Delay is { } requested
           ? Min(requested, options.Polling.MaxDelay)
-          : _backoff.GetDelay(step.CheckCount, options.Polling);
+          : _backoff.GetDelay(checkCount, options.Polling);
         run.WaitUntil(Min(run.Now + delay, deadline));
         return RunOutcome.Wait;
 
@@ -107,9 +94,8 @@ internal sealed class SagaStepExecutor
   private RunOutcome RetryOrFail(SagaRun run, StepRecord step, EffectiveStepOptions options, Exception error, DateTimeOffset deadline)
   {
     var saga = run.Saga;
-    step.Attempt++;
-    step.Error = run.Truncate(error.Message);
-    var decision = _retryPolicy.Evaluate(new RetryContext(saga.SagaType, step.Name, step.Attempt, error, options.Retry, false));
+    var attempt = step.RecordTransientFailure(run.Truncate(error.Message));
+    var decision = _retryPolicy.Evaluate(new RetryContext(saga.SagaType, step.Name, attempt, error, options.Retry, false));
     if (!decision.ShouldRetry)
       return FailStep(run, step, options, SagaFailureKind.StepFailed, $"Step '{step.Name}' failed after {step.Attempt} attempts: {error.Message}");
 
@@ -122,14 +108,12 @@ internal sealed class SagaStepExecutor
   private RunOutcome FailStep(SagaRun run, StepRecord step, EffectiveStepOptions options, SagaFailureKind kind, string error)
   {
     error = run.Truncate(error);
-    step.Status = StepStatus.Failed;
-    step.CompletedAtUtc = run.Now;
-    step.Error = error;
+    step.Fail(error, run.Now);
     run.Record(kind == SagaFailureKind.StepTimedOut ? SagaEventType.StepTimedOut : SagaEventType.StepFailed, step.Name, error);
     SagaLog.StepFailed(_logger, step.Name, run.Saga.Id, error);
 
     if (options.ContinueOnError)
-      run.Saga.CurrentStepIndex++;
+      run.Saga.MoveToNextStep();
     else
       run.BeginCompensation(kind, step.Name, error);
     return RunOutcome.Continue;
