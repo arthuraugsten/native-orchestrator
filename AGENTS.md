@@ -164,13 +164,7 @@ migration. If you changed behaviour, update the README.
 
 Ordered by what to do first. Items marked **(gap)** are gaps in the current implementation, not new features.
 
-### 1. Move to its own repository
-
-- [ ] Add CI: restore, build, format check, `dotnet test` on a runner with Docker (so the SQL Server tests run), and a
-      check that no migration is missing (`dotnet ef migrations has-pending-model-changes`).
-- [ ] Add a licence, `CODEOWNERS` and branch protection.
-
-### 2. Test gaps
+### 1. Test gaps
 
 - [ ] **(gap)** `ExecutionTimeout`: a hanging step is cancelled and retried (needs the fake clock advanced while the step waits).
 - [ ] **(gap)** Lease loss mid-run: `LeaseKeeper` cancels the run and nothing is saved.
@@ -181,7 +175,7 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 - [ ] Chaos test: kill an instance during a step; another instance finishes the saga after the lease expires.
 - [ ] Load test of claim throughput with several workers (for tuning `MaxConcurrency`, `ScanInterval` and indexes).
 
-### 3. Before production
+### 2. Before production
 
 - [ ] **Authentication and authorization** on `/sagas` (for example, JWT bearer with policies per saga type). The API is open today.
 - [ ] **Secrets:** the connection string from environment variables, user secrets or a key vault. `appsettings.Development.json`
@@ -198,7 +192,7 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 - [ ] **Alerts** on `Failed` sagas (observer or query), on a growing number of due sagas (queue lag), and on lease losses.
 - [ ] Rate limiting on the start endpoint (`Microsoft.AspNetCore.RateLimiting`).
 
-### 4. Engine features
+### 3. Engine features
 
 - [ ] **External events / callbacks:** a step that waits for a webhook (`POST /sagas/{id}/events/{name}`) instead of
       polling, with a timeout.
@@ -213,14 +207,14 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 - [ ] A saga that starts other sagas and waits for them (sub-sagas).
 - [ ] Queue triggers (for example, Azure Service Bus) as an alternative to HTTP.
 
-### 5. Store
+### 4. Store
 
 - [ ] A second provider (PostgreSQL) to prove the abstraction, with its own migrations project and a locking claim
       (`FOR UPDATE SKIP LOCKED`).
 - [ ] Review `DateTimeOffset` handling on providers without native support (SQLite orders it as text).
 - [ ] Index and partitioning review once real volumes are known; consider compressing large `DataJson`.
 
-### 6. Packaging (if the libraries become NuGet packages)
+### 5. Packaging (if the libraries become NuGet packages)
 
 - [ ] Package metadata (`PackageId`, version, authors, repository URL), Source Link, symbols.
 - [ ] `Microsoft.CodeAnalysis.PublicApiAnalyzers` to track public API changes.
