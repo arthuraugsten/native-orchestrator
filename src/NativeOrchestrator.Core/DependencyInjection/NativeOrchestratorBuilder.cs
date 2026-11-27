@@ -81,19 +81,25 @@ public sealed class NativeOrchestratorBuilder
     ArgumentException.ThrowIfNullOrWhiteSpace(sagaType);
     ArgumentException.ThrowIfNullOrWhiteSpace(cron);
     ArgumentNullException.ThrowIfNull(data);
+
     if (name.Length > MaxSagaNameLength)
       throw new ArgumentException($"Schedule names must be 1 to {MaxSagaNameLength} characters ('{name}').", nameof(name));
+
     if (!_scheduleNames.Add(name))
       throw new InvalidOperationException($"A schedule named '{name}' is already registered. Pass a different name to AddSchedule.");
 
     var options = Services.AddOptions<SagaScheduleOptions>(name).Configure(o => o.Cron = cron);
+
     if (configure is not null)
       options.Configure(configure);
+
     if (_configuration is not null)
       options.Bind(_configuration.GetSection("Schedules").GetSection(name));
+
     options.ValidateOnStart();
 
     Services.AddSingleton(new SagaScheduleRegistration(name, sagaType, typeof(TData), occurrence => data(occurrence)));
+
     return this;
   }
 
@@ -107,6 +113,7 @@ public sealed class NativeOrchestratorBuilder
     Services.TryAddSingleton<TStore>();
     Services.AddSingleton<ISagaRepository>(services => services.GetRequiredService<TStore>());
     Services.AddSingleton<ISagaWorkQueue>(services => services.GetRequiredService<TStore>());
+
     return this;
   }
 
@@ -129,6 +136,7 @@ public sealed class NativeOrchestratorBuilder
   {
     Services.RemoveAll<IRetryPolicy>();
     Services.AddSingleton<IRetryPolicy, TPolicy>();
+
     return this;
   }
 
@@ -139,6 +147,7 @@ public sealed class NativeOrchestratorBuilder
   {
     Services.RemoveAll<IBackoffStrategy>();
     Services.AddSingleton<IBackoffStrategy, TStrategy>();
+
     return this;
   }
 
@@ -149,6 +158,7 @@ public sealed class NativeOrchestratorBuilder
   {
     Services.RemoveAll<ISagaSerializer>();
     Services.AddSingleton<ISagaSerializer, TSerializer>();
+
     return this;
   }
 
@@ -161,13 +171,16 @@ public sealed class NativeOrchestratorBuilder
   {
     ArgumentNullException.ThrowIfNull(configure);
     Services.Configure<SagaSerializerOptions>(options => configure(options.SerializerOptions));
+
     return this;
   }
 
   private static string DefaultName(Type sagaType)
   {
     const string suffix = "Saga";
+
     var name = sagaType.Name;
+
     return name.Length > suffix.Length && name.EndsWith(suffix, StringComparison.Ordinal) ? name[..^suffix.Length] : name;
   }
 }

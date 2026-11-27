@@ -49,6 +49,7 @@ internal sealed class LeaseKeeper : IAsyncDisposable
   public async ValueTask DisposeAsync()
   {
     await StopAsync().ConfigureAwait(false);
+
     _loopToken.Dispose();
     _stop.Dispose();
     _run.Dispose();
@@ -61,11 +62,15 @@ internal sealed class LeaseKeeper : IAsyncDisposable
       try
       {
         await Task.Delay(_options.LeaseRenewalInterval, _timeProvider, token).ConfigureAwait(false);
+
         var renewed = await _queue.RenewLeaseAsync(_lease, _timeProvider.GetUtcNow() + _options.LeaseDuration, token).ConfigureAwait(false);
+
         if (!renewed)
         {
           SagaLog.LeaseLost(_logger, _lease.SagaId);
+
           await _run.CancelAsync().ConfigureAwait(false);
+
           return;
         }
       }

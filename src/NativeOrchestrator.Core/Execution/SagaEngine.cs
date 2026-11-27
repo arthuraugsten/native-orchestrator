@@ -80,12 +80,14 @@ internal sealed class SagaEngine
       catch (SagaConcurrencyException ex)
       {
         SagaLog.ConcurrencyConflict(_logger, saga.Id, ex.Message);
+
         await TryReleaseAsync(lease).ConfigureAwait(false);
       }
       catch (OperationCanceledException) when (keeper.Token.IsCancellationRequested)
       {
         if (stoppingToken.IsCancellationRequested)
           SagaLog.RunAborted(_logger, saga.Id);
+
         await TryReleaseAsync(lease).ConfigureAwait(false);
       }
       catch (Exception ex)
@@ -96,11 +98,14 @@ internal sealed class SagaEngine
     }
 
     await PublishAsync(saved).ConfigureAwait(false);
+
     if (!finished)
       return;
 
     _diagnostics.RecordFinished(saga.SagaType, saga.Status);
+
     SagaLog.SagaFinished(_logger, saga.Id, saga.SagaType, saga.Status);
+
     try
     {
       await runtime.OnFinishedAsync(saga, scope.ServiceProvider, CancellationToken.None).ConfigureAwait(false);
@@ -118,6 +123,7 @@ internal sealed class SagaEngine
     {
       saga.Status = SagaStatus.Running;
       saga.StartedAtUtc = run.Now;
+
       run.Record(SagaEventType.Started);
     }
 
@@ -127,8 +133,10 @@ internal sealed class SagaEngine
       {
         if (saga.CancellationRequested)
           run.BeginCompensation(SagaFailureKind.Cancelled, null, "Cancellation was requested.");
+
         else if (run.Now - saga.StartedAtUtc >= run.Options.MaxDuration)
           run.BeginCompensation(SagaFailureKind.SagaTimedOut, null, $"The saga didn't finish within its maximum duration of {run.Options.MaxDuration}.");
+
         else if (saga.CurrentStepIndex >= run.Runtime.Steps.Count)
         {
           run.Finish(SagaStatus.Completed);
@@ -140,8 +148,10 @@ internal sealed class SagaEngine
       else if (saga.Status == SagaStatus.Compensating)
       {
         var outcome = await _compensation.CompensateNextAsync(run, runToken).ConfigureAwait(false);
+
         if (outcome == RunOutcome.Wait)
           return;
+
         if (outcome == RunOutcome.Done)
         {
           run.Finish(CompensationRunner.AnyCompensationFailed(saga) ? SagaStatus.Failed : SagaStatus.Compensated);
@@ -155,7 +165,9 @@ internal sealed class SagaEngine
 
       // Checkpoint: the step's result is stored before the next step runs.
       saga.UpdatedAtUtc = run.Now;
+
       await _queue.SaveAsync(lease, saga, run.PendingHistory, releaseLease: false, runToken).ConfigureAwait(false);
+
       saved.AddRange(run.PendingHistory);
       run.PendingHistory.Clear();
     }

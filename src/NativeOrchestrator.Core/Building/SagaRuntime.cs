@@ -18,12 +18,15 @@ internal sealed class SagaRuntime<TSaga, TData> : ISagaRuntime
     _timeProvider = services.GetRequiredService<TimeProvider>();
 
     using var scope = services.CreateScope();
+
     var saga = CreateSaga(scope.ServiceProvider);
     var builder = new SagaBuilder<TData>(name);
+
     saga.InvokeConfigure(builder);
     Steps = builder.Build();
 
     _stepsByName = new Dictionary<string, StepDefinition>(StringComparer.OrdinalIgnoreCase);
+
     foreach (var step in Steps)
       _stepsByName.Add(step.Name, step);
   }

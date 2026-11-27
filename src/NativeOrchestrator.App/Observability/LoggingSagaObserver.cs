@@ -19,6 +19,7 @@ public sealed partial class LoggingSagaObserver : ISagaLifecycleObserver
       LogNeedsAttention(entry.SagaId, entry.SagaType);
     else
       LogEvent(entry.SagaType, entry.SagaId, entry.EventType, entry.StepName, entry.Details);
+
     return ValueTask.CompletedTask;
   }
 

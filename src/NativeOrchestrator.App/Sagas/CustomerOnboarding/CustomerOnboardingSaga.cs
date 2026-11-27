@@ -18,8 +18,10 @@ public sealed class CustomerOnboardingSaga : Saga<CustomerOnboardingData>
   {
     if (string.IsNullOrWhiteSpace(data.CustomerName))
       return "customerName is required.";
+
     if (string.IsNullOrWhiteSpace(data.Email) || !data.Email.Contains('@', StringComparison.Ordinal))
       return "email must be an email address.";
+
     return null;
   }
 }

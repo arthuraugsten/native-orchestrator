@@ -16,10 +16,13 @@ public sealed class ReportGenerationSaga : Saga<ReportGenerationData>
   {
     if (string.IsNullOrWhiteSpace(data.ReportName))
       return "reportName is required.";
+
     if (data.Recipients.Count == 0)
       return "recipients must list at least one email address.";
+
     if (data.DurationSeconds is < 0 or > 7 * 24 * 3600)
       return "durationSeconds must be between 0 and a week.";
+
     return null;
   }
 }

@@ -14,6 +14,7 @@ public static class SimulatedEndpoints
   {
     services.AddOptions<SimulatedOptions>().Bind(configuration);
     services.AddSingleton<SimulatedExternalSystems>();
+
     return services;
   }
 
@@ -46,18 +47,24 @@ public static class SimulatedEndpoints
     SimulatedExternalSystems systems)
   {
     var key = IdempotencyKey(http);
+
     if (!systems.PassFlakyCheck(request.Email, key))
       return TypedResults.Problem("The accounts database is busy.", statusCode: StatusCodes.Status503ServiceUnavailable);
+
     var account = systems.CreateAccount(request, key);
+
     return TypedResults.Created($"/simulated/accounts/{account.Id}", new AccountResponse(account.Id, account.Active ? "active" : "pending"));
   }
 
   private static Results<Ok<AccountResponse>, NotFound> ActivateAccount(string id, SimulatedExternalSystems systems)
   {
     var account = systems.FindAccount(id);
+
     if (account is null)
       return TypedResults.NotFound();
+
     account.Active = true;
+
     return TypedResults.Ok(new AccountResponse(account.Id, "active"));
   }
 
@@ -65,22 +72,27 @@ public static class SimulatedEndpoints
   private static NoContent DeleteAccount(string id, SimulatedExternalSystems systems)
   {
     systems.DeleteAccount(id);
+
     return TypedResults.NoContent();
   }
 
   private static Accepted StartVerification(VerificationRequest request, HttpRequest http, SimulatedExternalSystems systems)
   {
     var verification = systems.StartVerification(request, IdempotencyKey(http));
+
     return TypedResults.Accepted($"/simulated/identity/verifications/{verification.Id}");
   }
 
   private static IResult GetVerification(string id, HttpResponse http, SimulatedExternalSystems systems)
   {
     var status = systems.GetVerification(id);
+
     if (status is null)
       return TypedResults.NotFound();
+
     if (status.Status == "pending")
       return Pending(http, systems);
+
     return TypedResults.Ok(status);
   }
 
@@ -93,16 +105,20 @@ public static class SimulatedEndpoints
   private static IResult GetReport(string id, HttpRequest request, HttpResponse http, SimulatedExternalSystems systems)
   {
     var status = systems.GetReport(id, $"{request.Scheme}://{request.Host}");
+
     if (status is null)
       return TypedResults.NotFound();
+
     if (status.Status == "running")
       return Pending(http, systems);
+
     return TypedResults.Ok(status);
   }
 
   private static NoContent DiscardReport(string id, SimulatedExternalSystems systems)
   {
     systems.DiscardReport(id);
+
     return TypedResults.NoContent();
   }
 
@@ -110,7 +126,9 @@ public static class SimulatedEndpoints
   {
     if (request.To.EndsWith(SimulatedTriggers.BouncingEmailSuffix, StringComparison.OrdinalIgnoreCase))
       return TypedResults.Problem($"The mailbox {request.To} doesn't exist.", statusCode: StatusCodes.Status422UnprocessableEntity);
+
     systems.SendEmail(request);
+
     return TypedResults.Accepted((string?)null);
   }
 

@@ -23,6 +23,11 @@ csharp_style_prefer_primary_constructors = false:warning
 # Field references are not qualified with 'this.'.
 dotnet_style_qualification_for_field = false:warning
 
+# A blank line separates a block's closing brace from the next statement (IDE2003).
+# Experimental in Roslyn, so the option name may change in a future SDK.
+dotnet_style_allow_statement_immediately_after_block_experimental = false
+dotnet_diagnostic.IDE2003.severity = warning
+
 # Library namespaces are flat (one using per project); folders group code by role.
 dotnet_style_namespace_match_folder = false
 

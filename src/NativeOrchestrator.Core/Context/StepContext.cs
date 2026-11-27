@@ -83,6 +83,7 @@ public sealed class StepContext<TData>
     }
 
     state = _serializer.Deserialize<TState>(StateJson);
+
     return true;
   }
 
@@ -92,6 +93,7 @@ public sealed class StepContext<TData>
   public void SetState<TState>(TState state)
   {
     ArgumentNullException.ThrowIfNull(state);
+
     StateJson = _serializer.Serialize(state);
   }
 

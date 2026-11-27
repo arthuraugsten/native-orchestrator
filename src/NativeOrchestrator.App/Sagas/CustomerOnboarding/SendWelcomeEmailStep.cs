@@ -18,11 +18,14 @@ public sealed class SendWelcomeEmailStep : HttpSagaStep<CustomerOnboardingData>
   {
     var data = context.Data;
     var email = new EmailRequest(data.Email, "Welcome!", $"Hi {data.CustomerName}, your account {data.AccountId} is ready.");
+
     using var request = new HttpRequestMessage(HttpMethod.Post, "email")
     {
       Content = JsonContent.Create(email, AppJsonContext.Default.EmailRequest),
     };
+
     using var response = await SendAsync(request, context, cancellationToken);
+
     return StepResult.Success();
   }
 }

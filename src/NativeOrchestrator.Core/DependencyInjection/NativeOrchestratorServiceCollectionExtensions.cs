@@ -17,9 +17,12 @@ public static class NativeOrchestratorServiceCollectionExtensions
   public static NativeOrchestratorBuilder AddNativeOrchestrator(this IServiceCollection services, Action<NativeOrchestratorOptions>? configure = null)
   {
     ArgumentNullException.ThrowIfNull(services);
+
     AddCore(services);
+
     if (configure is not null)
       services.Configure(configure);
+
     return new NativeOrchestratorBuilder(services, null);
   }
 
@@ -34,10 +37,15 @@ public static class NativeOrchestratorServiceCollectionExtensions
   {
     ArgumentNullException.ThrowIfNull(services);
     ArgumentNullException.ThrowIfNull(configuration);
+
     AddCore(services);
+
     services.AddOptions<NativeOrchestratorOptions>().Bind(configuration);
+
     var defaults = configuration.GetSection("SagaDefaults");
+
     services.ConfigureAll<SagaOptions>(options => defaults.Bind(options));
+
     return new NativeOrchestratorBuilder(services, configuration);
   }
 

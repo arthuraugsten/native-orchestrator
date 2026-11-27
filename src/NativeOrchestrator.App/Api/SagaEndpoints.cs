@@ -26,9 +26,11 @@ public static class SagaEndpoints
       var result = await client.StartAsync(sagaType, request.Data, request.CorrelationId, cancellationToken);
       var statusUrl = $"/sagas/{result.SagaId}";
       var response = new StartSagaResponse(result.SagaId, result.Created, result.Outcome, statusUrl);
+
       // A single-instance saga is already running: nothing was started with this request's data.
       if (result.Outcome == SagaStartOutcome.AlreadyRunning)
         return TypedResults.Conflict(response);
+
       return TypedResults.Accepted(statusUrl, response);
     }
     catch (UnknownSagaTypeException ex)
