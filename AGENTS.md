@@ -15,14 +15,14 @@ workflow engine (no Durable Task, MassTransit or Temporal).
 | #   | Requirement                                                                 | How it is met                                                                                                                                                                                                                                                                                                                           |
 | --- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Prioritise built-in .NET capabilities                                       | Generic Host, `BackgroundService`, options + validation, DI, `TimeProvider`, System.Text.Json source generation, `IHttpClientFactory`, `[LoggerMessage]`, `Meter`/`ActivitySource`, health checks, EF Core, `Microsoft.Extensions.Http.Resilience`, central package management. Third-party code only in tests (xUnit, Testcontainers). |
-| 2   | Saga storage that doesn't depend on the database; implemented on SQL Server | The engine depends only on `ISagaRepository` + `ISagaWorkQueue`. `NativeOrchestrator.EntityFrameworkCore` implements them for any relational provider; `NativeOrchestrator.SqlServer` adds the provider, migrations and a locking claim.                                                                                                |
+| 2   | Saga storage that doesn't depend on the database; implemented on SQL Server | The engine depends only on `ISagaRepository` + `ISagaWorkQueue`, defined in Core. Each provider is its own project: `NativeOrchestrator.Data.SqlServer` (built on EF Core, with migrations and a locking claim) and `NativeOrchestrator.Data.InMemory` (tests). A provider picks its own data access; EF Core isn't required.           |
 | 3   | Sagas longer than 12 hours                                                  | Nothing waits in memory. Each saga is a database row with a due time (`NextRunAtUtc`); polls, retries and timeouts are stored, so they survive restarts. Tested to 26 hours in-memory and 14 hours on SQL Server, on a fake clock.                                                                                                      |
 | 4   | Polling to see whether an activity has finished                             | `PollingSagaStep<TData, TOperation>` (start once, then check) and `HttpPollingSagaStep<TData>` (HTTP `202` + `Location`, honouring `Retry-After`), with `PollingOptions` backoff and a step timeout.                                                                                                                                    |
 | 5   | SOLID and the options pattern                                               | Small single-purpose classes (claim, run steps, compensate, keep the lease, store). Extension through new classes and interfaces, not edits. Every setting is an options class, bound from configuration and validated at startup.                                                                                                      |
 | 6   | Base classes with many concrete classes                                     | `Saga<TData>`, `SagaStep<TData>`, `PollingSagaStep`, `HttpSagaStep`, `HttpPollingSagaStep`. The app has two sagas and six steps built on them.                                                                                                                                                                                          |
-| 7   | Customisable                                                                | Hooks on `Saga<TData>`; replaceable `IRetryPolicy`, `IBackoffStrategy`, `ISagaSerializer`, `ISagaClaimStrategy`, store and `TimeProvider`; `ISagaLifecycleObserver`; options per saga and per step.                                                                                                                                     |
+| 7   | Customisable                                                                | Hooks on `Saga<TData>`; replaceable `IRetryPolicy`, `IBackoffStrategy`, `ISagaSerializer`, store and `TimeProvider`; `ISagaLifecycleObserver`; options per saga and per step.                                                                                                                                                           |
 | 8   | Code in a folder called `NativeOrchestrator`                                | This folder, with its own solution. It is self-contained so it can move to its own repository.                                                                                                                                                                                                                                          |
-| 9   | Base classes in a separate class library from the app                       | `NativeOrchestrator.Core` (plus the two store libraries) is separate from `NativeOrchestrator.App`.                                                                                                                                                                                                                                     |
+| 9   | Base classes in a separate class library from the app                       | `NativeOrchestrator.Core` (plus the `NativeOrchestrator.Data.*` providers) is separate from `NativeOrchestrator.App`.                                                                                                                                                                                                                   |
 | —   | Resilience with Microsoft's package, not Polly (Polly's licensing change)   | `AddStandardResilienceHandler()` from `Microsoft.Extensions.Http.Resilience`. A build guard caps Polly (see [Decisions](#decisions)).                                                                                                                                                                                                   |
 
 ## Decisions
@@ -34,8 +34,9 @@ Each line is a deliberate choice. Change one only on purpose, and update this ta
 | Solution              | Separate `NativeOrchestrator.slnx`; central package versions; warnings as errors; code style enforced in the build                                                                                                                                                                                | Independent of the Durable Functions pilot it started next to.                                                                                                                                                |
 | Hosting               | One ASP.NET Core process runs the HTTP API and the worker. `WorkerEnabled: false` turns the worker off.                                                                                                                                                                                           | Simplest to deploy. Any number of instances share the database.                                                                                                                                               |
 | Triggers              | HTTP (`POST /sagas/{type}`) and CRON schedules declared at setup (`AddSchedule`).                                                                                                                                                                                                                 | Agreed scope. Queue triggers are a possible follow-up.                                                                                                                                                        |
-| Persistence           | EF Core; one short-lived `DbContext` per operation through `IDbContextFactory`                                                                                                                                                                                                                    | Database-agnostic, and no connection stays open while a saga waits.                                                                                                                                           |
-| Persistence model     | `SagaRecord`/`StepRecord` live in Core. Leases are EF **shadow properties**, so Core's model has no store details. Enums are stored as strings; data and step state as JSON text.                                                                                                                 | Core stays free of persistence concerns. Rows are readable in SQL. JSON text works on every provider.                                                                                                         |
+| Persistence           | One project per provider, `NativeOrchestrator.Data.{Provider}`, referencing Core only. SQL Server uses EF Core internally: one short-lived `DbContext` per operation through `IDbContextFactory`. Only `UseSqlServer`, `SqlServerSagaStoreOptions` and the health check are public.               | Core stays database-agnostic. Each provider picks its own data access (EF Core, ADO.NET, Dapper), and consumers get only the packages of the provider they use. No connection stays open while a saga waits.  |
+| In-memory store       | `NativeOrchestrator.Data.InMemory` (`UseInMemoryStore()`), outside Core. Core's tests reference it, never SQL Server.                                                                                                                                                                             | Core ships no store. Engine tests stay fast and need no database.                                                                                                                                             |
+| Persistence model     | `SagaRecord`/`StepRecord` live in Core. In SQL Server, leases are EF **shadow properties**, so Core's model has no store details. Enums are stored as strings; data and step state as JSON text.                                                                                                  | Core stays free of persistence concerns. Rows are readable in SQL. JSON text works on every provider.                                                                                                         |
 | Record encapsulation  | `SagaRecord`/`StepRecord` have **private setters**; every state change is an internal method on the record (`Start`, `WaitUntil`, `BeginCompensation`, `Finish`, `step.Succeed`, `step.RecordCheck`…). Public: `Restore(...)` for stores, `IncrementVersion`, `RequestCancellation`.              | The rules for a status change live in one place. EF Core fills private setters; `Restore` lets a store without EF Core rebuild records. Options classes keep `set`: the options pattern mutates them.         |
 | Schema                | Fixed `saga` schema; tables `Sagas`, `SagaSteps`, `SagaHistory`; unique `(SagaType, CorrelationId)` (filtered for nulls on SQL Server); index `(Status, NextRunAtUtc)`                                                                                                                            | A configurable schema conflicts with generated migrations.                                                                                                                                                    |
 | Single instance       | Opt-in `SingleInstance` (on for `report-generation`). The client sets `SagaRecord.ActiveInstanceKey` = saga type, unique where set. `SagaRun.Finish` clears it, but keeps it on `Failed` while `FailedBlocksNewStarts` (default on). A blocked start gets the holder as `AlreadyRunning`.         | The database enforces it across instances and racing starts. A failed saga needs manual action, so by default the next one waits until an operator clears the key.                                            |
@@ -59,7 +60,7 @@ Each line is a deliberate choice. Change one only on purpose, and update this ta
 | HTTP resilience       | Two layers: Microsoft's standard resilience handler per named client (seconds), and the engine's durable retries (minutes to days). POST is retried too, which is safe thanks to idempotency keys.                                                                                                | Short blips don't cost a saga retry; long outages don't hold calls open.                                                                                                                                      |
 | Polly                 | No direct Polly references. `Directory.Build.targets` fails the build on a direct reference or a transitive Polly above `MaxAllowedPollyVersion` (8.4.2, from `Microsoft.Extensions.Resilience` 11.0.1).                                                                                          | The user's licensing concern. Microsoft's package still depends on Polly.Core, so the guard makes any upgrade a conscious decision.                                                                           |
 | Serialization         | System.Text.Json, web defaults, source-generated contexts first (`ConfigureSerializer`), reflection as fallback.                                                                                                                                                                                  | Fast and trimming-friendly.                                                                                                                                                                                   |
-| Namespaces            | Flat: `NativeOrchestrator` (Core public API), `NativeOrchestrator.EntityFrameworkCore`, `NativeOrchestrator.SqlServer`; DI extensions in `Microsoft.Extensions.DependencyInjection` / `NativeOrchestrator`. Folders group by role.                                                                | One `using` for consumers.                                                                                                                                                                                    |
+| Namespaces            | Flat per project: `NativeOrchestrator` (Core public API, and every provider's `Use…`/`Add…` extensions), `NativeOrchestrator.Data.SqlServer`, `NativeOrchestrator.Data.InMemory`; DI extensions in `Microsoft.Extensions.DependencyInjection` / `NativeOrchestrator`. Folders group by role.      | One `using` for consumers.                                                                                                                                                                                    |
 | Saga hooks visibility | `Configure`, `Validate`, `OnCompletedAsync`, `OnFailedAsync` are `protected`; the runtime calls them through `internal Invoke*` wrappers.                                                                                                                                                         | `protected internal` breaks overrides in assemblies that see internals (the tests).                                                                                                                           |
 | Tests                 | xUnit v3 on Microsoft.Testing.Platform. Engine tests on `FakeTimeProvider` with no worker (`SagaTestHost` jumps the clock). Store contract tests shared by every store. SQL Server through **Testcontainers**, skipped with a reason when Docker isn't available.                                 | Fast, deterministic tests for multi-day sagas, and the real database for the store.                                                                                                                           |
 
@@ -87,15 +88,16 @@ src/
     Client/       ISagaClient, SagaClient
     Scheduling/   CronExpression, SagaScheduler, SagaScheduleOptions, SagaScheduleRegistry, ScheduledOccurrence
     Observability/ SagaLog, SagaDiagnostics, ISagaLifecycleObserver
-    Testing/      InMemorySagaStore
     DependencyInjection/  AddNativeOrchestrator, NativeOrchestratorBuilder
-  NativeOrchestrator.EntityFrameworkCore/   # SagaDbContext, mapping (Model/), EntityFrameworkSagaStore, claim strategies
-  NativeOrchestrator.SqlServer/             # UseSqlServer, SqlServerClaimStrategy, options, Migrations/
+  NativeOrchestrator.Data.InMemory/         # InMemorySagaStore, UseInMemoryStore (tests and local experiments)
+  NativeOrchestrator.Data.SqlServer/        # UseSqlServer, options, health check, SqlServerClaimStrategy
+    EntityFrameworkCore/  SagaDbContext, mapping (Model/), EntityFrameworkSagaStore, claim strategies (internal)
+    Migrations/
   NativeOrchestrator.App/                   # API, sagas, external service clients, simulated systems, observer
 tests/
   Shared/                                   # SagaStoreContractTests, SagaTestHost, ScriptedSaga (linked into both projects)
   NativeOrchestrator.Core.Tests/
-  NativeOrchestrator.SqlServer.Tests/       # Testcontainers
+  NativeOrchestrator.Data.SqlServer.Tests/  # Testcontainers
 ```
 
 ## Commands
@@ -107,7 +109,7 @@ dotnet build NativeOrchestrator.slnx
 dotnet test --solution NativeOrchestrator.slnx
 dotnet format whitespace NativeOrchestrator.slnx --verify-no-changes
 docker compose up -d && dotnet run --project src/NativeOrchestrator.App       # http://localhost:5080
-dotnet tool restore && dotnet ef migrations add <Name> --project src/NativeOrchestrator.SqlServer
+dotnet tool restore && dotnet ef migrations add <Name> --project src/NativeOrchestrator.Data.SqlServer
 ```
 
 **Before finishing any change:** the build passes (with no warnings, since warnings are errors), `dotnet test` passes
@@ -134,7 +136,8 @@ update [`docs/index.html`](docs/index.html) in the same change (rule 12).
 
 ## Rules that keep it correct
 
-1. **Core has no database or web dependency.** Persistence goes through `ISagaRepository`/`ISagaWorkQueue`.
+1. **Core has no database or web dependency.** Persistence goes through `ISagaRepository`/`ISagaWorkQueue`, and
+   each provider lives in its own `NativeOrchestrator.Data.*` project.
 2. **Every store passes `SagaStoreContractTests`.** Change the contract (interface docs) and the contract tests together.
 3. **Nothing waits in memory across a poll or retry.** A step that must wait returns `StepResult.Poll(...)` or throws; it
    never sleeps.
@@ -170,11 +173,13 @@ update [`docs/index.html`](docs/index.html) in the same change (rule 12).
   Engine changes are only needed if it needs a new `StepResult` kind.
 - **Add an option:** a property on the options class, a check in its validator, README configuration docs, tests for
   precedence and validation.
-- **Add a store:** implement both interfaces (or use EF Core with another provider plus its own migrations project, as
-  `NativeOrchestrator.SqlServer` does), then derive a test class from `SagaStoreContractTests`. Without EF Core,
-  rebuild records with `SagaRecord.Restore`/`StepRecord.Restore` and call `IncrementVersion` after each save.
+- **Add a store:** a `NativeOrchestrator.Data.{Provider}` project that references Core only and implements both
+  interfaces with whatever data access suits the database (EF Core isn't required), plus a `Use{Provider}(...)`
+  extension in the `NativeOrchestrator` namespace. Rebuild records with `SagaRecord.Restore`/`StepRecord.Restore`
+  and call `IncrementVersion` after each save. Then derive a test class from `SagaStoreContractTests`.
 - **Change saga or step state:** add or extend a method on `SagaRecord`/`StepRecord`; never add a public setter.
-- **Change the model:** edit `Model/*Configuration.cs`, then add a migration in `NativeOrchestrator.SqlServer`.
+- **Change the model:** edit `EntityFrameworkCore/Model/*Configuration.cs`, then add a migration, both in
+  `NativeOrchestrator.Data.SqlServer`.
 - **Test engine behaviour:** use `SagaTestHost` with a `SagaShape` and `Script` (`tests/Shared`). Name tests as
   sentences (`A_failed_compensation_is_retried_then_...`), and cover the success path and the failure and edge cases.
 
@@ -227,8 +232,8 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 
 ### 4. Store
 
-- [ ] A second provider (PostgreSQL) to prove the abstraction, with its own migrations project and a locking claim
-      (`FOR UPDATE SKIP LOCKED`).
+- [ ] A second provider, `NativeOrchestrator.Data.PostgreSql`, to prove the abstraction: its own data access, schema
+      migrations and a locking claim (`FOR UPDATE SKIP LOCKED`).
 - [ ] Review `DateTimeOffset` handling on providers without native support (SQLite orders it as text).
 - [ ] Index and partitioning review once real volumes are known; consider compressing large `DataJson`.
 
@@ -236,8 +241,8 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 
 - [ ] Package metadata (`PackageId`, version, authors, repository URL), Source Link, symbols.
 - [ ] `Microsoft.CodeAnalysis.PublicApiAnalyzers` to track public API changes.
-- [ ] Decide whether `InMemorySagaStore` and `tests/Shared` (contract tests, `SagaTestHost`) ship as a
-      `NativeOrchestrator.Testing` package for consumers.
+- [ ] Decide whether `tests/Shared` (contract tests, `SagaTestHost`) ships as a `NativeOrchestrator.Testing` package
+      for consumers. The in-memory store already has its own project.
 
 ## Known limitations
 

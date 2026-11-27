@@ -61,7 +61,7 @@ dotnet_naming_rule.private_fields_underscore_camel_case.style = underscore_camel
 dotnet_naming_rule.private_fields_underscore_camel_case.severity = warning
 
 # EF Core migrations are generated code.
-[src/NativeOrchestrator.SqlServer/Migrations/**.cs]
+[src/NativeOrchestrator.Data.SqlServer/Migrations/**.cs]
 generated_code = true
 
 # Tests call the client against in-memory or local stores; passing the test's cancellation token to every call adds noise.
