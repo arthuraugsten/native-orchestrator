@@ -5,7 +5,7 @@ namespace NativeOrchestrator;
 
 /// <summary>
 /// Options for the default <see cref="ISagaSerializer"/>. Add a source-generated <c>JsonSerializerContext</c> for your
-/// saga data and step state types with <see cref="NativeOrchestratorBuilder.ConfigureSerializer"/>.
+/// saga data and step state types with <see cref="SagaOrchestratorBuilder.ConfigureSerializer"/>.
 /// </summary>
 public sealed class SagaSerializerOptions
 {

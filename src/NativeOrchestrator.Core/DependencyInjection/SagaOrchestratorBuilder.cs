@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace NativeOrchestrator;
 
-/// <summary>Adds sagas, a store and customisations to the orchestrator. Returned by <c>AddNativeOrchestrator</c>.</summary>
-public sealed class NativeOrchestratorBuilder
+/// <summary>Adds sagas, a store and customisations to the orchestrator. Returned by <c>AddSagaOrchestrator</c>.</summary>
+public sealed class SagaOrchestratorBuilder
 {
   private const int MaxSagaNameLength = 100;
 
@@ -14,7 +14,7 @@ public sealed class NativeOrchestratorBuilder
   private readonly HashSet<string> _sagaNames = new(StringComparer.Ordinal);
   private readonly HashSet<string> _scheduleNames = new(StringComparer.Ordinal);
 
-  internal NativeOrchestratorBuilder(IServiceCollection services, IConfiguration? configuration)
+  internal SagaOrchestratorBuilder(IServiceCollection services, IConfiguration? configuration)
   {
     Services = services;
     _configuration = configuration;
@@ -31,7 +31,7 @@ public sealed class NativeOrchestratorBuilder
   /// Keep it stable once sagas are running. Defaults to the class name without a <c>Saga</c> suffix.
   /// </param>
   /// <param name="configure">Sets the saga's options in code. Configuration overrides them.</param>
-  public NativeOrchestratorBuilder AddSaga<TSaga, TData>(string? name = null, Action<SagaOptions>? configure = null)
+  public SagaOrchestratorBuilder AddSaga<TSaga, TData>(string? name = null, Action<SagaOptions>? configure = null)
     where TSaga : Saga<TData>
     where TData : class
   {
@@ -69,7 +69,7 @@ public sealed class NativeOrchestratorBuilder
   /// </param>
   /// <param name="data">Creates the saga's data for an occurrence. It goes through the saga's <c>Validate</c>.</param>
   /// <param name="configure">Sets the schedule's options in code. Configuration overrides them.</param>
-  public NativeOrchestratorBuilder AddSchedule<TData>(
+  public SagaOrchestratorBuilder AddSchedule<TData>(
     string name,
     string sagaType,
     string cron,
@@ -105,7 +105,7 @@ public sealed class NativeOrchestratorBuilder
 
   /// <summary>Uses a store that implements both <see cref="ISagaRepository"/> and <see cref="ISagaWorkQueue"/>, as a singleton.</summary>
   /// <typeparam name="TStore">The store.</typeparam>
-  public NativeOrchestratorBuilder UseStore<TStore>()
+  public SagaOrchestratorBuilder UseStore<TStore>()
     where TStore : class, ISagaRepository, ISagaWorkQueue
   {
     Services.RemoveAll<ISagaRepository>();
@@ -119,7 +119,7 @@ public sealed class NativeOrchestratorBuilder
 
   /// <summary>Adds a lifecycle observer, as a singleton.</summary>
   /// <typeparam name="TObserver">The observer.</typeparam>
-  public NativeOrchestratorBuilder AddObserver<TObserver>()
+  public SagaOrchestratorBuilder AddObserver<TObserver>()
     where TObserver : class, ISagaLifecycleObserver
   {
     Services.TryAddEnumerable(ServiceDescriptor.Singleton<ISagaLifecycleObserver, TObserver>());
@@ -128,7 +128,7 @@ public sealed class NativeOrchestratorBuilder
 
   /// <summary>Replaces the retry policy, as a singleton.</summary>
   /// <typeparam name="TPolicy">The policy.</typeparam>
-  public NativeOrchestratorBuilder UseRetryPolicy<TPolicy>()
+  public SagaOrchestratorBuilder UseRetryPolicy<TPolicy>()
     where TPolicy : class, IRetryPolicy
   {
     Services.RemoveAll<IRetryPolicy>();
@@ -139,7 +139,7 @@ public sealed class NativeOrchestratorBuilder
 
   /// <summary>Replaces the backoff strategy, as a singleton.</summary>
   /// <typeparam name="TStrategy">The strategy.</typeparam>
-  public NativeOrchestratorBuilder UseBackoffStrategy<TStrategy>()
+  public SagaOrchestratorBuilder UseBackoffStrategy<TStrategy>()
     where TStrategy : class, IBackoffStrategy
   {
     Services.RemoveAll<IBackoffStrategy>();
@@ -150,7 +150,7 @@ public sealed class NativeOrchestratorBuilder
 
   /// <summary>Replaces the serializer, as a singleton.</summary>
   /// <typeparam name="TSerializer">The serializer.</typeparam>
-  public NativeOrchestratorBuilder UseSerializer<TSerializer>()
+  public SagaOrchestratorBuilder UseSerializer<TSerializer>()
     where TSerializer : class, ISagaSerializer
   {
     Services.RemoveAll<ISagaSerializer>();
@@ -164,7 +164,7 @@ public sealed class NativeOrchestratorBuilder
   /// <c>o => o.TypeInfoResolverChain.Insert(0, MyJsonContext.Default)</c>.
   /// </summary>
   /// <param name="configure">Changes the options.</param>
-  public NativeOrchestratorBuilder ConfigureSerializer(Action<JsonSerializerOptions> configure)
+  public SagaOrchestratorBuilder ConfigureSerializer(Action<JsonSerializerOptions> configure)
   {
     ArgumentNullException.ThrowIfNull(configure);
     Services.Configure<SagaSerializerOptions>(options => configure(options.SerializerOptions));

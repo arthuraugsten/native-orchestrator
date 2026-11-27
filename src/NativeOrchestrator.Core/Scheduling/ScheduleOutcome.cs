@@ -1,6 +1,6 @@
 namespace NativeOrchestrator;
 
-/// <summary>What happened to one occurrence of a schedule. Used in logs and the <c>nativeorchestrator.schedule.occurrences</c> metric.</summary>
+/// <summary>What happened to one occurrence of a schedule. Used in logs and the <c>sagaorchestrator.schedule.occurrences</c> metric.</summary>
 internal enum ScheduleOutcome
 {
   /// <summary>A saga was started.</summary>

@@ -6,15 +6,15 @@ using NativeOrchestrator;
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>Adds the orchestrator to a service collection.</summary>
-public static class NativeOrchestratorServiceCollectionExtensions
+public static class SagaOrchestratorServiceCollectionExtensions
 {
   /// <summary>
   /// Adds the orchestrator: the worker, the engine and <see cref="ISagaClient"/>. Then add sagas and a store with the
   /// returned builder.
   /// </summary>
   /// <param name="services">The service collection.</param>
-  /// <param name="configure">Sets <see cref="NativeOrchestratorOptions"/> in code.</param>
-  public static NativeOrchestratorBuilder AddNativeOrchestrator(this IServiceCollection services, Action<NativeOrchestratorOptions>? configure = null)
+  /// <param name="configure">Sets <see cref="SagaOrchestratorOptions"/> in code.</param>
+  public static SagaOrchestratorBuilder AddSagaOrchestrator(this IServiceCollection services, Action<SagaOrchestratorOptions>? configure = null)
   {
     ArgumentNullException.ThrowIfNull(services);
 
@@ -23,37 +23,37 @@ public static class NativeOrchestratorServiceCollectionExtensions
     if (configure is not null)
       services.Configure(configure);
 
-    return new NativeOrchestratorBuilder(services, null);
+    return new SagaOrchestratorBuilder(services, null);
   }
 
   /// <summary>
-  /// Adds the orchestrator with options bound from configuration: <see cref="NativeOrchestratorOptions"/> from the
+  /// Adds the orchestrator with options bound from configuration: <see cref="SagaOrchestratorOptions"/> from the
   /// section itself, every saga's <see cref="SagaOptions"/> from <c>SagaDefaults</c>, each saga's own from
   /// <c>Sagas:{name}</c>, and each schedule's <see cref="SagaScheduleOptions"/> from <c>Schedules:{name}</c>.
   /// </summary>
   /// <param name="services">The service collection.</param>
-  /// <param name="configuration">The configuration section, for example <c>builder.Configuration.GetSection("NativeOrchestrator")</c>.</param>
-  public static NativeOrchestratorBuilder AddNativeOrchestrator(this IServiceCollection services, IConfiguration configuration)
+  /// <param name="configuration">The configuration section, for example <c>builder.Configuration.GetSection("SagaOrchestrator")</c>.</param>
+  public static SagaOrchestratorBuilder AddSagaOrchestrator(this IServiceCollection services, IConfiguration configuration)
   {
     ArgumentNullException.ThrowIfNull(services);
     ArgumentNullException.ThrowIfNull(configuration);
 
     AddCore(services);
 
-    services.AddOptions<NativeOrchestratorOptions>().Bind(configuration);
+    services.AddOptions<SagaOrchestratorOptions>().Bind(configuration);
 
     var defaults = configuration.GetSection("SagaDefaults");
 
     services.ConfigureAll<SagaOptions>(options => defaults.Bind(options));
 
-    return new NativeOrchestratorBuilder(services, configuration);
+    return new SagaOrchestratorBuilder(services, configuration);
   }
 
   private static void AddCore(IServiceCollection services)
   {
-    services.AddOptions<NativeOrchestratorOptions>().ValidateOnStart();
+    services.AddOptions<SagaOrchestratorOptions>().ValidateOnStart();
     services.AddOptions<SagaSerializerOptions>();
-    services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<NativeOrchestratorOptions>, NativeOrchestratorOptionsValidator>());
+    services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SagaOrchestratorOptions>, SagaOrchestratorOptionsValidator>());
     services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SagaOptions>, SagaOptionsValidator>());
     services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SagaScheduleOptions>, SagaScheduleOptionsValidator>());
 

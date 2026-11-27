@@ -93,7 +93,7 @@ public sealed class SqlServerIntegrationTests
     var connectionString = await _fixture.CreateDatabaseAsync();
     var services = new ServiceCollection();
     services.AddLogging();
-    services.AddNativeOrchestrator().UseSqlServer(o => o.ConnectionString = connectionString);
+    services.AddSagaOrchestrator().UseSqlServer(o => o.ConnectionString = connectionString);
     await using var provider = services.BuildServiceProvider();
     var repository = provider.GetRequiredService<ISagaRepository>();
     var queue = provider.GetRequiredService<ISagaWorkQueue>();
@@ -158,7 +158,7 @@ public sealed class SqlServerIntegrationTests
     var connectionString = (await _fixture.CreateDatabaseAsync()).Replace("saga_", "fresh_", StringComparison.Ordinal);
     var services = new ServiceCollection();
     services.AddLogging();
-    services.AddNativeOrchestrator().UseSqlServer(o =>
+    services.AddSagaOrchestrator().UseSqlServer(o =>
     {
       o.ConnectionString = connectionString;
       o.ApplyMigrationsOnStartup = true;

@@ -10,7 +10,7 @@ internal sealed class LeaseKeeper : IAsyncDisposable
 {
   private readonly ISagaWorkQueue _queue;
   private readonly SagaLease _lease;
-  private readonly NativeOrchestratorOptions _options;
+  private readonly SagaOrchestratorOptions _options;
   private readonly TimeProvider _timeProvider;
   private readonly ILogger _logger;
   private readonly CancellationTokenSource _run;
@@ -21,7 +21,7 @@ internal sealed class LeaseKeeper : IAsyncDisposable
   public LeaseKeeper(
     ISagaWorkQueue queue,
     SagaLease lease,
-    NativeOrchestratorOptions options,
+    SagaOrchestratorOptions options,
     TimeProvider timeProvider,
     ILogger logger,
     CancellationToken stoppingToken)

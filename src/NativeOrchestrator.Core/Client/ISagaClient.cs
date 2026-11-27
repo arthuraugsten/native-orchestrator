@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace NativeOrchestrator;
 
-/// <summary>Starts, reads and cancels sagas. Register it with <c>AddNativeOrchestrator</c> and inject it.</summary>
+/// <summary>Starts, reads and cancels sagas. Register it with <c>AddSagaOrchestrator</c> and inject it.</summary>
 public interface ISagaClient
 {
   /// <summary>

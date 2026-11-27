@@ -113,9 +113,9 @@ public sealed class CustomerOnboardingSaga : Saga<CustomerOnboardingData>
 ```
 
 ```csharp
-builder.Services.AddNativeOrchestrator(configuration.GetSection("NativeOrchestrator"))
+builder.Services.AddSagaOrchestrator(configuration.GetSection("SagaOrchestrator"))
   .AddSaga<CustomerOnboardingSaga, CustomerOnboardingData>("customer-onboarding")
-  .UseSqlServer(configuration.GetSection("NativeOrchestrator:SqlServer"),
+  .UseSqlServer(configuration.GetSection("SagaOrchestrator:SqlServer"),
     sql => sql.ConnectionString = configuration.GetConnectionString("Sagas")!)
   .ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
 ```
@@ -188,7 +188,7 @@ Options are bound from configuration and validated at startup. Each level overri
 `SagaDefaults`, then the saga's code, then `Sagas:{name}`. For steps and schedules, configuration wins over code.
 
 ```jsonc
-"NativeOrchestrator": {
+"SagaOrchestrator": {
   "WorkerEnabled": true, "MaxConcurrency": 16, "ScanInterval": "00:00:05",
   "LeaseDuration": "00:05:00", "LeaseRenewalInterval": "00:01:00",
   "SqlServer": { "CommandTimeout": "00:00:30", "MaxRetryCount": 6, "UseLockingClaim": true, "ApplyMigrationsOnStartup": false },
@@ -272,9 +272,9 @@ build if a project references Polly directly, or if a Polly version above `MaxAl
 ## Observability
 
 - **Logs:** source-generated (`SagaLog`), with saga ID, type and step.
-- **Traces:** an `ActivitySource` named `NativeOrchestrator`, one span per run.
-- **Metrics:** a `Meter` named `NativeOrchestrator` with `nativeorchestrator.steps`, `nativeorchestrator.step.duration`
-  and `nativeorchestrator.sagas.finished`.
+- **Traces:** an `ActivitySource` named `SagaOrchestrator`, one span per run.
+- **Metrics:** a `Meter` named `SagaOrchestrator` with `sagaorchestrator.steps`, `sagaorchestrator.step.duration`
+  and `sagaorchestrator.sagas.finished`.
 - **History:** a per-saga timeline, exposed at `GET /sagas/{id}/history`.
 
 ## Development

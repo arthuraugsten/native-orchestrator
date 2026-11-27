@@ -12,8 +12,8 @@ using NativeOrchestrator.Data.SqlServer;
 namespace NativeOrchestrator.Data.SqlServer.Migrations;
 
 [DbContext(typeof(SagaDbContext))]
-[Migration("20261127003119_InitialCreate")]
-partial class _20261127003119_InitialCreate
+[Migration("20261127132727_InitialCreate")]
+partial class _20261127132727_InitialCreate
 {
     /// <inheritdoc />
     protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -68,6 +68,10 @@ partial class _20261127003119_InitialCreate
             {
                 b.Property<Guid>("Id")
                     .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("ActiveInstanceKey")
+                    .HasMaxLength(200)
+                    .HasColumnType("nvarchar(200)");
 
                 b.Property<bool>("CancellationRequested")
                     .HasColumnType("bit");
@@ -134,6 +138,10 @@ partial class _20261127003119_InitialCreate
                     .HasColumnType("int");
 
                 b.HasKey("Id");
+
+                b.HasIndex("ActiveInstanceKey")
+                    .IsUnique()
+                    .HasFilter("[ActiveInstanceKey] IS NOT NULL");
 
                 b.HasIndex("SagaType", "CorrelationId")
                     .IsUnique()

@@ -6,7 +6,7 @@ namespace NativeOrchestrator;
 /// <summary>The library's activity source and metric instruments.</summary>
 internal sealed class SagaDiagnostics : IDisposable
 {
-  private static readonly ActivitySource Source = new(NativeOrchestratorDiagnostics.ActivitySourceName);
+  private static readonly ActivitySource Source = new(SagaOrchestratorDiagnostics.ActivitySourceName);
 
   private readonly Meter _meter;
   private readonly Counter<long> _steps;
@@ -16,11 +16,11 @@ internal sealed class SagaDiagnostics : IDisposable
 
   public SagaDiagnostics(IMeterFactory? meterFactory = null)
   {
-    _meter = meterFactory?.Create(NativeOrchestratorDiagnostics.MeterName) ?? new Meter(NativeOrchestratorDiagnostics.MeterName);
-    _steps = _meter.CreateCounter<long>("nativeorchestrator.steps", description: "Step runs, by outcome.");
-    _stepDuration = _meter.CreateHistogram<double>("nativeorchestrator.step.duration", "ms", "How long one step run took.");
-    _finished = _meter.CreateCounter<long>("nativeorchestrator.sagas.finished", description: "Sagas that finished, by status.");
-    _occurrences = _meter.CreateCounter<long>("nativeorchestrator.schedule.occurrences", description: "Schedule occurrences, by outcome.");
+    _meter = meterFactory?.Create(SagaOrchestratorDiagnostics.MeterName) ?? new Meter(SagaOrchestratorDiagnostics.MeterName);
+    _steps = _meter.CreateCounter<long>("sagaorchestrator.steps", description: "Step runs, by outcome.");
+    _stepDuration = _meter.CreateHistogram<double>("sagaorchestrator.step.duration", "ms", "How long one step run took.");
+    _finished = _meter.CreateCounter<long>("sagaorchestrator.sagas.finished", description: "Sagas that finished, by status.");
+    _occurrences = _meter.CreateCounter<long>("sagaorchestrator.schedule.occurrences", description: "Schedule occurrences, by outcome.");
   }
 
   public static Activity? StartRun(SagaRecord saga)

@@ -3,7 +3,7 @@ namespace NativeOrchestrator;
 /// <summary>
 /// The base class for a saga: a sequence of steps that call external systems, with compensation when one fails.
 /// Derive from it, declare the steps in <see cref="Configure"/>, and register it with
-/// <see cref="NativeOrchestratorBuilder.AddSaga{TSaga, TData}"/>.
+/// <see cref="SagaOrchestratorBuilder.AddSaga{TSaga, TData}"/>.
 /// </summary>
 /// <typeparam name="TData">
 /// The saga's data: its input, plus anything steps add for later steps. It is stored as JSON after each step, so keep

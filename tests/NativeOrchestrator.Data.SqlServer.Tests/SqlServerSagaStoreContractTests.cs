@@ -37,7 +37,7 @@ public abstract class SqlServerSagaStoreContractTests : SagaStoreContractTests, 
     var connectionString = await _fixture.CreateDatabaseAsync();
     var services = new ServiceCollection();
     services.AddLogging();
-    services.AddNativeOrchestrator().UseSqlServer(options =>
+    services.AddSagaOrchestrator().UseSqlServer(options =>
     {
       options.ConnectionString = connectionString;
       options.UseLockingClaim = _useLockingClaim;

@@ -35,7 +35,7 @@ public sealed class RegistrationTests
   [Fact]
   public void Registering_two_sagas_with_the_same_name_throws()
   {
-    var builder = new ServiceCollection().AddNativeOrchestrator();
+    var builder = new ServiceCollection().AddSagaOrchestrator();
     builder.AddSaga<ScriptedSaga, TestData>("orders");
 
     Assert.Throws<InvalidOperationException>(() => builder.AddSaga<ScriptedSaga, TestData>("orders"));
@@ -65,7 +65,7 @@ public sealed class RegistrationTests
       new SagaShape().Step("A"),
       configuration: new Dictionary<string, string?> { ["LeaseRenewalInterval"] = "00:10:00", ["LeaseDuration"] = "00:05:00" });
 
-    var error = Assert.Throws<OptionsValidationException>(() => host.Services.GetRequiredService<IOptions<NativeOrchestratorOptions>>().Value);
+    var error = Assert.Throws<OptionsValidationException>(() => host.Services.GetRequiredService<IOptions<SagaOrchestratorOptions>>().Value);
     Assert.Contains(error.Failures, f => f.Contains("LeaseRenewalInterval", StringComparison.Ordinal));
   }
 
@@ -75,7 +75,7 @@ public sealed class RegistrationTests
     var services = new ServiceCollection();
     services.AddLogging();
     services.AddSingleton(new Script());
-    services.AddNativeOrchestrator().UseInMemoryStore().AddSaga<OrderFulfillmentSaga, TestData>();
+    services.AddSagaOrchestrator().UseInMemoryStore().AddSaga<OrderFulfillmentSaga, TestData>();
     using var provider = services.BuildServiceProvider();
 
     var runtime = provider.GetRequiredService<SagaRegistry>().Get("OrderFulfillment");

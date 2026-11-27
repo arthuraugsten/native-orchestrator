@@ -2,7 +2,7 @@ namespace NativeOrchestrator;
 
 /// <summary>
 /// Decides whether a step (or a compensation) that threw is retried, and when. Replace it with
-/// <see cref="NativeOrchestratorBuilder.UseRetryPolicy{TPolicy}"/>, for example to stop retrying some exception types.
+/// <see cref="SagaOrchestratorBuilder.UseRetryPolicy{TPolicy}"/>, for example to stop retrying some exception types.
 /// </summary>
 public interface IRetryPolicy
 {

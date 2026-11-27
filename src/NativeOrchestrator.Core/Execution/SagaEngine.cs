@@ -16,7 +16,7 @@ internal sealed class SagaEngine
   private readonly CompensationRunner _compensation;
   private readonly IServiceScopeFactory _scopes;
   private readonly IOptionsMonitor<SagaOptions> _sagaOptions;
-  private readonly IOptionsMonitor<NativeOrchestratorOptions> _options;
+  private readonly IOptionsMonitor<SagaOrchestratorOptions> _options;
   private readonly ISagaLifecycleObserver[] _observers;
   private readonly SagaDiagnostics _diagnostics;
   private readonly TimeProvider _timeProvider;
@@ -29,7 +29,7 @@ internal sealed class SagaEngine
     CompensationRunner compensation,
     IServiceScopeFactory scopes,
     IOptionsMonitor<SagaOptions> sagaOptions,
-    IOptionsMonitor<NativeOrchestratorOptions> options,
+    IOptionsMonitor<SagaOrchestratorOptions> options,
     IEnumerable<ISagaLifecycleObserver> observers,
     SagaDiagnostics diagnostics,
     TimeProvider timeProvider,
@@ -168,7 +168,7 @@ internal sealed class SagaEngine
     }
   }
 
-  private async Task PostponeUnknownSagaTypeAsync(SagaRecord saga, SagaLease lease, NativeOrchestratorOptions options)
+  private async Task PostponeUnknownSagaTypeAsync(SagaRecord saga, SagaLease lease, SagaOrchestratorOptions options)
   {
     SagaLog.UnknownSagaType(_logger, saga.Id, saga.SagaType, options.UnknownSagaTypeRetryDelay);
     saga.ScheduleAt(_timeProvider.GetUtcNow() + options.UnknownSagaTypeRetryDelay);

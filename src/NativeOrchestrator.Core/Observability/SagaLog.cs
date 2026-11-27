@@ -8,7 +8,7 @@ internal static partial class SagaLog
   [LoggerMessage(1, LogLevel.Information, "Saga worker {InstanceName} started; it runs up to {MaxConcurrency} sagas at once")]
   public static partial void WorkerStarted(ILogger logger, string instanceName, int maxConcurrency);
 
-  [LoggerMessage(2, LogLevel.Information, "Saga worker is disabled (NativeOrchestrator:WorkerEnabled is false)")]
+  [LoggerMessage(2, LogLevel.Information, "Saga worker is disabled (SagaOrchestrator:WorkerEnabled is false)")]
   public static partial void WorkerDisabled(ILogger logger);
 
   [LoggerMessage(3, LogLevel.Error, "Claiming due sagas failed; trying again in {Delay}")]
@@ -62,7 +62,7 @@ internal static partial class SagaLog
   [LoggerMessage(50, LogLevel.Information, "Saga scheduler started with {Count} schedules")]
   public static partial void SchedulerStarted(ILogger logger, int count);
 
-  [LoggerMessage(51, LogLevel.Information, "Saga scheduler is disabled (NativeOrchestrator:WorkerEnabled is false)")]
+  [LoggerMessage(51, LogLevel.Information, "Saga scheduler is disabled (SagaOrchestrator:WorkerEnabled is false)")]
   public static partial void SchedulerDisabled(ILogger logger);
 
   [LoggerMessage(52, LogLevel.Information, "Schedule {ScheduleName} started saga {SagaId} for {ScheduledAtUtc:O}")]

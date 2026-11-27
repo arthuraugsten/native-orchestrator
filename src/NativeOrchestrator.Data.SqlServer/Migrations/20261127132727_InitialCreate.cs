@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NativeOrchestrator.Data.SqlServer.Migrations;
 
 /// <inheritdoc />
-public partial class _20261127003119_InitialCreate : Migration
+public partial class _20261127132727_InitialCreate : Migration
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,7 @@ public partial class _20261127003119_InitialCreate : Migration
                 Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                 SagaType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                 CorrelationId = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                ActiveInstanceKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                 Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                 CurrentStepIndex = table.Column<int>(type: "int", nullable: false),
                 DataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -104,6 +105,14 @@ public partial class _20261127003119_InitialCreate : Migration
             schema: "saga",
             table: "SagaHistory",
             column: "SagaId");
+
+        migrationBuilder.CreateIndex(
+            name: "IX_Sagas_ActiveInstanceKey",
+            schema: "saga",
+            table: "Sagas",
+            column: "ActiveInstanceKey",
+            unique: true,
+            filter: "[ActiveInstanceKey] IS NOT NULL");
 
         migrationBuilder.CreateIndex(
             name: "IX_Sagas_SagaType_CorrelationId",
