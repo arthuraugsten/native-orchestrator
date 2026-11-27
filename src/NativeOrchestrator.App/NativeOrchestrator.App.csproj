@@ -9,12 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NativeOrchestrator.Core\NativeOrchestrator.Core.csproj" />
-    <ProjectReference Include="..\NativeOrchestrator.SqlServer\NativeOrchestrator.SqlServer.csproj" />
+    <ProjectReference Include="..\NativeOrchestrator.Data.SqlServer\NativeOrchestrator.Data.SqlServer.csproj" />
   </ItemGroup>
 
 </Project>

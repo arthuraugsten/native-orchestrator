@@ -17,12 +17,12 @@ change is saved to a database, so a saga can run for days and survive restarts a
 
 | Project | Kind | What it holds |
 | --- | --- | --- |
-| `src/NativeOrchestrator.Core` | class library | Base classes (`Saga<TData>`, `SagaStep<TData>`, `PollingSagaStep<TData, TOperation>`, `HttpSagaStep<TData>`, `HttpPollingSagaStep<TData>`), the engine, the worker, `ISagaClient`, options, retry and backoff policies, `InMemorySagaStore`. No database code. |
-| `src/NativeOrchestrator.EntityFrameworkCore` | class library | `SagaDbContext`, its mapping, and `EntityFrameworkSagaStore` for any relational provider. |
-| `src/NativeOrchestrator.SqlServer` | class library | SQL Server: `UseSqlServer(...)`, the migrations and a locking claim query. |
+| `src/NativeOrchestrator.Core` | class library | Base classes (`Saga<TData>`, `SagaStep<TData>`, `PollingSagaStep<TData, TOperation>`, `HttpSagaStep<TData>`, `HttpPollingSagaStep<TData>`), the engine, the worker, `ISagaClient`, options, retry and backoff policies, and the store contracts (`ISagaRepository`, `ISagaWorkQueue`, `SagaRecord`). No database code. |
+| `src/NativeOrchestrator.Data.SqlServer` | class library | The SQL Server store: `UseSqlServer(...)`, its health check, the migrations and a locking claim query. Built on EF Core, which stays internal. |
+| `src/NativeOrchestrator.Data.InMemory` | class library | `UseInMemoryStore()`: a store in memory, for tests and local experiments. |
 | `src/NativeOrchestrator.App` | ASP.NET Core app | The orchestrator service: HTTP API, worker, two example sagas and simulated external systems. |
 | `tests/NativeOrchestrator.Core.Tests` | xUnit v3 | Engine, polling, retries, compensation, options and worker, on a fake clock. |
-| `tests/NativeOrchestrator.SqlServer.Tests` | xUnit v3 | The store contract and the engine against SQL Server in a Testcontainers container. |
+| `tests/NativeOrchestrator.Data.SqlServer.Tests` | xUnit v3 | The store contract and the engine against SQL Server in a Testcontainers container. |
 
 `tests/Shared` holds the store contract tests and test helpers, compiled into both test projects.
 
@@ -223,11 +223,13 @@ Options are bound from configuration and validated at startup. Each level overri
 | Delay curve | `UseBackoffStrategy<T>()` with your `IBackoffStrategy` |
 | Serialization | `ConfigureSerializer(...)` or `UseSerializer<T>()` |
 | Events (publish, alert) | `AddObserver<T>()` with an `ISagaLifecycleObserver` |
-| Storage | `UseStore<T>()` with a class implementing `ISagaRepository` and `ISagaWorkQueue`; or `UseEntityFrameworkCore(...)` with another EF provider |
-| How sagas are claimed | Register your `ISagaClaimStrategy` |
+| Storage | `UseSqlServer(...)`, `UseInMemoryStore()`, or `UseStore<T>()` with a class implementing `ISagaRepository` and `ISagaWorkQueue` |
+| How SQL Server claims sagas | `UseLockingClaim` in the SQL Server options |
 | Clock | Register a `TimeProvider` |
 
-A new store must pass `SagaStoreContractTests`: derive a test class from it, as the in-memory and SQL Server tests do.
+A new store goes in its own `NativeOrchestrator.Data.{Provider}` project, which references Core only and uses
+whatever data access suits the database: EF Core isn't required. It must pass `SagaStoreContractTests`: derive a test
+class from it, as the in-memory and SQL Server tests do.
 `SagaRecord` and `StepRecord` have private setters, because only the engine changes them. A store that doesn't use EF
 Core rebuilds them from its rows with `SagaRecord.Restore(...)` and `StepRecord.Restore(...)`, and calls
 `saga.IncrementVersion()` after a successful save. `saga.RequestCancellation(nowUtc)` applies the cancellation rules
@@ -242,12 +244,13 @@ unique index on `ActiveInstanceKey` (set while a single-instance saga is active 
 
 ```sh
 dotnet tool restore
-dotnet ef migrations add <Name> --project src/NativeOrchestrator.SqlServer   # after changing the model
-dotnet ef migrations script --idempotent --project src/NativeOrchestrator.SqlServer -o saga.sql   # for deployment
+dotnet ef migrations add <Name> --project src/NativeOrchestrator.Data.SqlServer   # after changing the model
+dotnet ef migrations script --idempotent --project src/NativeOrchestrator.Data.SqlServer -o saga.sql   # for deployment
 ```
 
 `ApplyMigrationsOnStartup` is for development. In production, apply the script or a `dotnet ef migrations bundle` in
-the deployment. By default the store claims with `UPDLOCK, READPAST`, so instances never claim the same saga.
+the deployment. `AddHealthChecks().AddSqlServerSagaStore()` checks that the database can be reached. By default the
+store claims with `UPDLOCK, READPAST`, so instances never claim the same saga.
 `UseLockingClaim: false` uses the provider-neutral `ExecuteUpdate` claim. Under contention, that claim can hand a saga
 to two instances; the lease token on save rejects the second.
 

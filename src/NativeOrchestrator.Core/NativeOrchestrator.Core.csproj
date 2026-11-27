@@ -11,9 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="NativeOrchestrator.EntityFrameworkCore" />
+    <InternalsVisibleTo Include="NativeOrchestrator.Data.InMemory" />
+    <InternalsVisibleTo Include="NativeOrchestrator.Data.SqlServer" />
     <InternalsVisibleTo Include="NativeOrchestrator.Core.Tests" />
-    <InternalsVisibleTo Include="NativeOrchestrator.SqlServer.Tests" />
+    <InternalsVisibleTo Include="NativeOrchestrator.Data.SqlServer.Tests" />
   </ItemGroup>
 
   <ItemGroup>

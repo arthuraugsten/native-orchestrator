@@ -401,7 +401,7 @@ const DOCS = {
     {
       title: "Storage-agnostic core",
       rule: "Rule 1",
-      text: "Core has no database or web dependency. The engine only sees ISagaRepository and ISagaWorkQueue; EF Core and SQL Server live in their own libraries.",
+      text: "Core has no database or web dependency. The engine only sees ISagaRepository and ISagaWorkQueue; each store is its own NativeOrchestrator.Data.* library and picks its own data access (SQL Server uses EF Core internally).",
       how: "Every store passes the shared SagaStoreContractTests.",
     },
     {
@@ -470,11 +470,13 @@ const DOCS = {
     assemblies: `flowchart LR
   App["NativeOrchestrator.App<br/>API, sagas, simulated systems"] --> SqlServer
   App --> Core
-  SqlServer["NativeOrchestrator.SqlServer<br/>UseSqlServer, locking claim, migrations"] --> EF
-  EF["NativeOrchestrator.EntityFrameworkCore<br/>SagaDbContext, EF store"] --> Core
-  Core["NativeOrchestrator.Core<br/>base classes, engine, scheduler, client"]
+  SqlServer["NativeOrchestrator.Data.SqlServer<br/>UseSqlServer, EF Core store, locking claim, migrations"] --> Core
+  InMemory["NativeOrchestrator.Data.InMemory<br/>UseInMemoryStore"] --> Core
+  Core["NativeOrchestrator.Core<br/>base classes, engine, scheduler, client, store contracts"]
   CoreTests["Core.Tests"] -.-> Core
-  SqlTests["SqlServer.Tests<br/>Testcontainers"] -.-> SqlServer`,
+  CoreTests -.-> InMemory
+  SqlTests["Data.SqlServer.Tests<br/>Testcontainers"] -.-> SqlServer
+  SqlTests -.-> InMemory`,
 
     hierarchy: `classDiagram
   direction TB
@@ -805,13 +807,13 @@ const DOCS = {
     { name: "SagaScheduleOptions", asm: "Core", kind: "class", vis: "public", role: "Cron, TimeZone, Enabled, MisfireThreshold", deps: [] },
     { name: "ScheduledOccurrence", asm: "Core", kind: "record", vis: "public", role: "Passed to a schedule's data factory", deps: [] },
     { name: "TimeProvider", asm: ".NET", kind: "class", vis: "public", role: "The clock; FakeTimeProvider in tests", deps: [] },
-    { name: "InMemorySagaStore", asm: "Core", kind: "class", vis: "public", role: "Store for tests and experiments", deps: [] },
-    { name: "EntityFrameworkSagaStore", asm: "EntityFrameworkCore", kind: "class", vis: "public", role: "Store on any relational EF Core provider", deps: ["SagaDbContext", "ISagaClaimStrategy"] },
-    { name: "SagaDbContext", asm: "EntityFrameworkCore", kind: "class", vis: "public", role: "Sagas, SagaSteps, SagaHistory in the saga schema", deps: [] },
-    { name: "ISagaClaimStrategy", asm: "EntityFrameworkCore", kind: "interface", vis: "public", role: "How due sagas are leased", impl: ["DefaultClaimStrategy", "SqlServerClaimStrategy"] },
-    { name: "DefaultClaimStrategy", asm: "EntityFrameworkCore", kind: "class", vis: "internal", role: "Provider-neutral ExecuteUpdate claim", deps: ["SagaDbContext"] },
-    { name: "SqlServerClaimStrategy", asm: "SqlServer", kind: "class", vis: "public", role: "UPDLOCK, READPAST, ROWLOCK claim", deps: ["SagaDbContext"] },
-    { name: "SagaDatabaseInitializer", asm: "EntityFrameworkCore", kind: "class", vis: "internal", role: "Applies migrations when ApplyMigrationsOnStartup is on", deps: ["SagaDbContext"] },
+    { name: "InMemorySagaStore", asm: "Data.InMemory", kind: "class", vis: "public", role: "Store for tests and local experiments (UseInMemoryStore)", deps: [] },
+    { name: "EntityFrameworkSagaStore", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "The SQL Server store, built on EF Core", deps: ["SagaDbContext", "ISagaClaimStrategy"] },
+    { name: "SagaDbContext", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "Sagas, SagaSteps, SagaHistory in the saga schema", deps: [] },
+    { name: "ISagaClaimStrategy", asm: "Data.SqlServer", kind: "interface", vis: "internal", role: "How due sagas are leased (UseLockingClaim picks one)", impl: ["DefaultClaimStrategy", "SqlServerClaimStrategy"] },
+    { name: "DefaultClaimStrategy", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "Provider-neutral ExecuteUpdate claim", deps: ["SagaDbContext"] },
+    { name: "SqlServerClaimStrategy", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "UPDLOCK, READPAST, ROWLOCK claim", deps: ["SagaDbContext"] },
+    { name: "SagaDatabaseInitializer", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "Applies migrations when ApplyMigrationsOnStartup is on", deps: ["SagaDbContext"] },
     { name: "LoggingSagaObserver", asm: "App", kind: "class", vis: "public", role: "Example observer in the app", deps: [] },
   ],
 
@@ -1211,23 +1213,22 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;` },
       id: "stores",
       group: "Operate",
       title: "Stores",
-      summary: "SQL Server out of the box, any EF Core relational provider with your own migrations, or the in-memory store for tests.",
+      summary: "SQL Server out of the box, the in-memory store for tests, or your own provider: one NativeOrchestrator.Data.* project each.",
       points: [
-        "UseSqlServer adds the provider, migrations and the locking claim (UPDLOCK, READPAST).",
-        "UseEntityFrameworkCore takes any provider; register an ISagaClaimStrategy for a locking claim.",
-        "A custom store implements ISagaRepository and ISagaWorkQueue and must pass SagaStoreContractTests.",
+        "UseSqlServer (NativeOrchestrator.Data.SqlServer) adds the store, migrations and the locking claim (UPDLOCK, READPAST). It uses EF Core internally; AddHealthChecks().AddSqlServerSagaStore() checks the database.",
+        "UseInMemoryStore (NativeOrchestrator.Data.InMemory) keeps sagas in memory, for tests and local experiments.",
+        "A custom store is its own NativeOrchestrator.Data.{Provider} project that references Core only. It implements ISagaRepository and ISagaWorkQueue with any data access (EF Core isn't required) and must pass SagaStoreContractTests.",
         "SagaRecord and StepRecord have private setters, since only the engine changes them. A store that doesn't use EF Core rebuilds them with SagaRecord.Restore and StepRecord.Restore, calls IncrementVersion after a save, and can use RequestCancellation for the cancellation rules.",
       ],
       code: [
         { label: "SQL Server", lang: "cs", code: `.UseSqlServer(configuration.GetSection("NativeOrchestrator:SqlServer"), sql => sql.ConnectionString = connectionString)` },
-        { label: "Another EF Core provider", lang: "cs", code: `.UseEntityFrameworkCore((services, options) => options
-  .UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly("MyCompany.Sagas.Postgres")))` },
+        { label: "Health check", lang: "cs", code: `builder.Services.AddHealthChecks().AddSqlServerSagaStore();` },
         { label: "Tests", lang: "cs", code: `services.AddNativeOrchestrator()
   .AddSaga<OrderSaga, OrderData>("orders")
   .UseInMemoryStore();` },
         { label: "Migrations", lang: "sh", code: `dotnet tool restore
-dotnet ef migrations add <Name> --project src/NativeOrchestrator.SqlServer
-dotnet ef migrations script --idempotent --project src/NativeOrchestrator.SqlServer -o saga.sql` },
+dotnet ef migrations add <Name> --project src/NativeOrchestrator.Data.SqlServer
+dotnet ef migrations script --idempotent --project src/NativeOrchestrator.Data.SqlServer -o saga.sql` },
       ],
     },
     {

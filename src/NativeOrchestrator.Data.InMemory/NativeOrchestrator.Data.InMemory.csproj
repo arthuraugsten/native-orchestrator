@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NativeOrchestrator.Data.InMemory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NativeOrchestrator.Core\NativeOrchestrator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

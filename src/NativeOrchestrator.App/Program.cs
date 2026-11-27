@@ -6,7 +6,6 @@ using NativeOrchestrator.App.Observability;
 using NativeOrchestrator.App.Sagas.CustomerOnboarding;
 using NativeOrchestrator.App.Sagas.ReportGeneration;
 using NativeOrchestrator.App.Simulated;
-using NativeOrchestrator.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -37,7 +36,7 @@ builder.Services.AddNativeOrchestrator(configuration.GetSection("NativeOrchestra
 builder.Services.AddExternalServices(configuration.GetSection("ExternalServices"), configuration.GetSection("Resilience"));
 builder.Services.AddSimulatedExternalSystems(configuration.GetSection("Simulated"));
 
-builder.Services.AddHealthChecks().AddDbContextCheck<SagaDbContext>("saga-store");
+builder.Services.AddHealthChecks().AddSqlServerSagaStore();
 
 var app = builder.Build();
 
