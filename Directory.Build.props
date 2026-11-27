@@ -1,0 +1,20 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1902/NU1903: vulnerability advisories in transitive packages stay warnings, so a new advisory doesn't break the build. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Polly guard (Directory.Build.targets): the highest Polly version allowed to come in transitively. -->
+    <MaxAllowedPollyVersion>8.4.2</MaxAllowedPollyVersion>
+  </PropertyGroup>
+
+  <!-- Libraries document their public API; the app and test projects don't. -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.App')) And !$(MSBuildProjectName.EndsWith('.Tests'))">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

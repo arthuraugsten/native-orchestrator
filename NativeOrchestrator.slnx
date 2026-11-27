@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NativeOrchestrator.Core/NativeOrchestrator.Core.csproj" />
+    <Project Path="src/NativeOrchestrator.EntityFrameworkCore/NativeOrchestrator.EntityFrameworkCore.csproj" />
+    <Project Path="src/NativeOrchestrator.SqlServer/NativeOrchestrator.SqlServer.csproj" />
+    <Project Path="src/NativeOrchestrator.App/NativeOrchestrator.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NativeOrchestrator.Core.Tests/NativeOrchestrator.Core.Tests.csproj" />
+    <Project Path="tests/NativeOrchestrator.SqlServer.Tests/NativeOrchestrator.SqlServer.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="AGENTS.md" />
+    <File Path="global.json" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+    <File Path="compose.yaml" />
+  </Folder>
+</Solution>

@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+
+# Test results
+TestResults/
+
+# IDE and user files
+.vs/
+.idea/
+*.user
+*.suo
+
+# NuGet packages produced by dotnet pack
+*.nupkg
+*.snupkg
+
+# Migration scripts and bundles generated for a deployment
+*.sql
+efbundle*

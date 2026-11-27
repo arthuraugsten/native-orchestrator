@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NativeOrchestrator.EntityFrameworkCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NativeOrchestrator.Core\NativeOrchestrator.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="NativeOrchestrator.SqlServer" />
+    <InternalsVisibleTo Include="NativeOrchestrator.SqlServer.Tests" />
+  </ItemGroup>
+
+</Project>

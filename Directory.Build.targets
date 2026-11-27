@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Polly guard. In-call HTTP resilience uses Microsoft.Extensions.Http.Resilience, which is built on Polly. Polly may
+    only come in through that package, at a version no higher than $(MaxAllowedPollyVersion):
+      - no project may reference a Polly package directly;
+      - no Polly package above $(MaxAllowedPollyVersion) may be resolved (for example, after a Microsoft package upgrade).
+  -->
+  <Target Name="NativeOrchestratorPollyGuard" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <_DirectPollyReference Include="@(PackageReference)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('Polly', System.StringComparison.OrdinalIgnoreCase))" />
+      <_ResolvedPollyPackage Include="@(RuntimeCopyLocalItems->'%(NuGetPackageId) %(NuGetPackageVersion)')"
+        Condition="$([System.String]::Copy('%(RuntimeCopyLocalItems.NuGetPackageId)').StartsWith('Polly', System.StringComparison.OrdinalIgnoreCase)) And $([MSBuild]::VersionGreaterThan('%(RuntimeCopyLocalItems.NuGetPackageVersion)', '$(MaxAllowedPollyVersion)'))" />
+    </ItemGroup>
+    <Error Condition="'@(_DirectPollyReference)' != ''"
+      Text="Don't reference Polly directly (@(_DirectPollyReference)). Use Microsoft.Extensions.Http.Resilience or Microsoft.Extensions.Resilience instead." />
+    <Error Condition="'@(_ResolvedPollyPackage)' != ''"
+      Text="Polly above $(MaxAllowedPollyVersion) was resolved (@(_ResolvedPollyPackage, ', ')). Review its licence before raising MaxAllowedPollyVersion in Directory.Build.props." />
+  </Target>
+
+</Project>

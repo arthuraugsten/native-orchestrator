@@ -1,0 +1,64 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_new_line_before_open_brace = all
+
+# No primary constructors on classes or structs: use a standard constructor that assigns
+# private readonly fields. (Positional records are fine.) This turns off the IDE0290
+# "Use primary constructor" suggestion.
+csharp_style_prefer_primary_constructors = false:warning
+
+# Field references are not qualified with 'this.'.
+dotnet_style_qualification_for_field = false:warning
+
+# Library namespaces are flat (one using per project); folders group code by role.
+dotnet_style_namespace_match_folder = false
+
+# Naming: private constants and static fields are PascalCase; other private fields are _camelCase.
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.applicable_accessibilities = private
+dotnet_naming_symbols.private_constants.required_modifiers = const
+
+dotnet_naming_symbols.private_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_fields.required_modifiers = static
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+
+dotnet_naming_rule.private_constants_pascal_case.symbols = private_constants
+dotnet_naming_rule.private_constants_pascal_case.style = pascal_case
+dotnet_naming_rule.private_constants_pascal_case.severity = warning
+
+dotnet_naming_rule.private_static_fields_pascal_case.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields_pascal_case.style = pascal_case
+dotnet_naming_rule.private_static_fields_pascal_case.severity = warning
+
+dotnet_naming_rule.private_fields_underscore_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore_camel_case.style = underscore_camel_case
+dotnet_naming_rule.private_fields_underscore_camel_case.severity = warning
+
+# EF Core migrations are generated code.
+[src/NativeOrchestrator.SqlServer/Migrations/**.cs]
+generated_code = true
+
+# Tests call the client against in-memory or local stores; passing the test's cancellation token to every call adds noise.
+[tests/**.cs]
+dotnet_diagnostic.xUnit1051.severity = suggestion
