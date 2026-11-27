@@ -187,7 +187,7 @@ public sealed class EntityFrameworkSagaStore : ISagaRepository, ISagaWorkQueue
     var entry = context.Entry(stored);
     entry.CurrentValues.SetValues(saga);
     entry.Property(s => s.Version).OriginalValue = saga.Version;
-    stored.Version = saga.Version + 1;
+    stored.IncrementVersion();
     if (releaseLease)
     {
       entry.Property(SagaModel.LeaseToken).CurrentValue = null;
@@ -197,9 +197,9 @@ public sealed class EntityFrameworkSagaStore : ISagaRepository, ISagaWorkQueue
 
     foreach (var step in saga.Steps)
     {
-      var storedStep = stored.Steps.Find(s => s.StepIndex == step.StepIndex);
+      var storedStep = stored.FindStep(step.StepIndex);
       if (storedStep is null)
-        stored.Steps.Add(step.Clone());
+        stored.AddStep(step.Clone());
       else
         context.Entry(storedStep).CurrentValues.SetValues(step);
     }
@@ -214,7 +214,7 @@ public sealed class EntityFrameworkSagaStore : ISagaRepository, ISagaWorkQueue
       throw new SagaConcurrencyException(saga.Id, $"Saga {saga.Id} changed while it was being saved.", ex);
     }
 
-    saga.Version++;
+    saga.IncrementVersion();
   }
 
   /// <inheritdoc />

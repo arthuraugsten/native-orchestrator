@@ -1216,6 +1216,7 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;` },
         "UseSqlServer adds the provider, migrations and the locking claim (UPDLOCK, READPAST).",
         "UseEntityFrameworkCore takes any provider; register an ISagaClaimStrategy for a locking claim.",
         "A custom store implements ISagaRepository and ISagaWorkQueue and must pass SagaStoreContractTests.",
+        "SagaRecord and StepRecord have private setters, since only the engine changes them. A store that doesn't use EF Core rebuilds them with SagaRecord.Restore and StepRecord.Restore, calls IncrementVersion after a save, and can use RequestCancellation for the cancellation rules.",
       ],
       code: [
         { label: "SQL Server", lang: "cs", code: `.UseSqlServer(configuration.GetSection("NativeOrchestrator:SqlServer"), sql => sql.ConnectionString = connectionString)` },

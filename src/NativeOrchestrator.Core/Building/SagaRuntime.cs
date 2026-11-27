@@ -77,8 +77,8 @@ internal sealed class SagaRuntime<TSaga, TData> : ISagaRuntime
         ?? throw new InvalidOperationException($"Step '{definition.Name}' returned null. Return a StepResult.");
       if (result.Kind != StepResultKind.Failure)
       {
-        saga.DataJson = _serializer.Serialize(data);
-        step.StateJson = context.StateJson;
+        saga.UpdateData(_serializer.Serialize(data));
+        step.UpdateState(context.StateJson);
       }
 
       return result;
@@ -102,8 +102,8 @@ internal sealed class SagaRuntime<TSaga, TData> : ISagaRuntime
     try
     {
       await instance.CompensateAsync(context, cancellationToken).ConfigureAwait(false);
-      saga.DataJson = _serializer.Serialize(data);
-      step.StateJson = context.StateJson;
+      saga.UpdateData(_serializer.Serialize(data));
+      step.UpdateState(context.StateJson);
     }
     finally
     {

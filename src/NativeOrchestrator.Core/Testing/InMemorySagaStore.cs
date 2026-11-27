@@ -62,17 +62,7 @@ public sealed class InMemorySagaStore : ISagaRepository, ISagaWorkQueue
     {
       if (!_sagas.TryGetValue(sagaId, out var entry))
         return Task.FromResult(CancellationRequestResult.NotFound);
-      var saga = entry.Saga;
-      if (!SagaStatuses.Cancellable.Contains(saga.Status))
-        return Task.FromResult(CancellationRequestResult.NotCancellable);
-      if (saga.CancellationRequested)
-        return Task.FromResult(CancellationRequestResult.AlreadyRequested);
-
-      saga.CancellationRequested = true;
-      saga.NextRunAtUtc = nowUtc;
-      saga.UpdatedAtUtc = nowUtc;
-      saga.Version++;
-      return Task.FromResult(CancellationRequestResult.Requested);
+      return Task.FromResult(entry.Saga.RequestCancellation(nowUtc));
     }
   }
 
@@ -136,7 +126,7 @@ public sealed class InMemorySagaStore : ISagaRepository, ISagaWorkQueue
       if (newKey is not null)
         _activeInstances[newKey] = saga.Id;
 
-      saga.Version++;
+      saga.IncrementVersion();
       entry.Saga = saga.Clone();
       _history.AddRange(history);
       if (releaseLease)

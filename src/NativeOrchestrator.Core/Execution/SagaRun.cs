@@ -47,43 +47,20 @@ internal sealed class SagaRun
     message.Length <= _maxErrorLength ? message : string.Concat(message.AsSpan(0, _maxErrorLength - 3), "...");
 
   /// <summary>Ends the run: the saga is saved as due at <paramref name="dueAtUtc"/>.</summary>
-  public void WaitUntil(DateTimeOffset dueAtUtc)
-  {
-    if (Saga.Status != SagaStatus.Compensating)
-      Saga.Status = SagaStatus.Waiting;
-    Saga.NextRunAtUtc = dueAtUtc;
-  }
+  public void WaitUntil(DateTimeOffset dueAtUtc) => Saga.WaitUntil(dueAtUtc);
 
   public void BeginCompensation(SagaFailureKind kind, string? stepName, string error)
   {
     error = Truncate(error);
-    foreach (var step in Saga.Steps)
-    {
-      if (step.Status != StepStatus.InProgress)
-        continue;
-      step.Status = StepStatus.Failed;
-      step.CompletedAtUtc = Now;
-      step.Error = error;
-    }
-
-    Saga.Status = SagaStatus.Compensating;
-    Saga.FailureKind = kind;
-    Saga.FailureStep = stepName;
-    Saga.Error = error;
-    Saga.NextRunAtUtc = Now;
+    Saga.BeginCompensation(kind, stepName, error, Now);
     Record(SagaEventType.CompensationStarted, stepName, $"{kind}: {error}");
     SagaLog.SagaCompensating(_logger, Saga.Id, Saga.SagaType, kind, error);
   }
 
   public void Finish(SagaStatus status)
   {
-    Saga.Status = status;
-    Saga.CompletedAtUtc = Now;
-    Saga.NextRunAtUtc = null;
-    // A failed saga needs manual action, so by default it keeps blocking new starts of a single-instance saga until it
-    // is resolved.
-    if (status != SagaStatus.Failed || !Options.FailedBlocksNewStarts)
-      Saga.ActiveInstanceKey = null;
+    Saga.Finish(status, Now, Options.FailedBlocksNewStarts);
+
     var eventType = status switch
     {
       SagaStatus.Completed => SagaEventType.Completed,

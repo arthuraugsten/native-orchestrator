@@ -69,9 +69,7 @@ public abstract class SagaStoreContractTests
 
     // The engine clears the key when the saga finishes, which frees it.
     var (saga, lease) = Assert.Single(await queue.ClaimDueAsync(Claim(maxCount: 10), Token), c => c.Saga.Id == first.Id);
-    saga.Status = SagaStatus.Completed;
-    saga.NextRunAtUtc = null;
-    saga.ActiveInstanceKey = null;
+    saga.Finish(SagaStatus.Completed, Now, failedBlocksNewStarts: true);
     await queue.SaveAsync(lease, saga, [], releaseLease: true, Token);
     Assert.Null((await repository.GetAsync(first.Id, Token))?.ActiveInstanceKey);
 
@@ -154,19 +152,21 @@ public abstract class SagaStoreContractTests
     await repository.CreateAsync(created, Created(created), Token);
     var (saga, lease) = Assert.Single(await queue.ClaimDueAsync(Claim(), Token));
 
-    saga.Status = SagaStatus.Waiting;
-    saga.CurrentStepIndex = 1;
-    saga.DataJson = """{"trace":["A"]}""";
-    saga.NextRunAtUtc = Now;
-    saga.Steps.Add(new StepRecord { StepIndex = 0, Name = "A", Status = StepStatus.Succeeded, StartedAtUtc = Now, CompletedAtUtc = Now });
-    saga.Steps.Add(new StepRecord { StepIndex = 1, Name = "B", Status = StepStatus.InProgress, StartedAtUtc = Now, CheckCount = 1, StateJson = "\"op\"" });
+    saga.Start(Now);
+    saga.StartStep(0, "A", Now).Succeed(Now);
+    saga.MoveToNextStep();
+    var step = saga.StartStep(1, "B", Now);
+    step.UpdateState("\"op\"");
+    step.RecordCheck();
+    saga.UpdateData("""{"trace":["A"]}""");
+    saga.WaitUntil(Now);
     await queue.SaveAsync(lease, saga, [History(saga, SagaEventType.StepSucceeded, "A")], releaseLease: false, Token);
     Assert.Equal(1, saga.Version);
 
     // The lease is kept: the saga is due, but nobody else can claim it, and a second save works.
     Assert.Empty(await queue.ClaimDueAsync(Claim(at: Now.AddMinutes(1)), Token));
-    saga.Steps[1].CheckCount = 2;
-    saga.NextRunAtUtc = Now.AddHours(13);
+    step.RecordCheck();
+    saga.WaitUntil(Now.AddHours(13));
     await queue.SaveAsync(lease, saga, [], releaseLease: true, Token);
     Assert.Equal(2, saga.Version);
 
@@ -239,18 +239,25 @@ public abstract class SagaStoreContractTests
     SagaStatus status = SagaStatus.Pending,
     string? activeInstanceKey = null)
   {
-    return new SagaRecord
-    {
-      Id = Guid.CreateVersion7(),
-      SagaType = sagaType,
-      CorrelationId = correlationId,
-      ActiveInstanceKey = activeInstanceKey,
-      Status = status,
-      DataJson = """{"trace":[]}""",
-      CreatedAtUtc = Now,
-      UpdatedAtUtc = Now,
-      NextRunAtUtc = status.IsFinished() ? null : dueAt ?? Now,
-    };
+    return SagaRecord.Restore(
+      Guid.CreateVersion7(),
+      sagaType,
+      correlationId,
+      activeInstanceKey,
+      status,
+      currentStepIndex: 0,
+      dataJson: """{"trace":[]}""",
+      createdAtUtc: Now,
+      updatedAtUtc: Now,
+      startedAtUtc: null,
+      completedAtUtc: null,
+      nextRunAtUtc: status.IsFinished() ? null : dueAt ?? Now,
+      cancellationRequested: false,
+      failureKind: null,
+      failureStep: null,
+      error: null,
+      version: 0,
+      steps: []);
   }
 
   protected static SagaClaimRequest Claim(int maxCount = 10, DateTimeOffset? at = null, TimeSpan? leaseFor = null)

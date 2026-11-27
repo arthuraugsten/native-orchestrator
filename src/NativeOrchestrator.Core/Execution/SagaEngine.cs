@@ -71,7 +71,7 @@ internal sealed class SagaEngine
       {
         await AdvanceAsync(run, lease, saved, keeper.Token).ConfigureAwait(false);
         await keeper.StopAsync().ConfigureAwait(false);
-        saga.UpdatedAtUtc = run.Now;
+        saga.MarkUpdated(run.Now);
         // The final save isn't cancelled by shutdown, so finished work isn't thrown away; the store's command timeout bounds it.
         await _queue.SaveAsync(lease, saga, run.PendingHistory, releaseLease: true, CancellationToken.None).ConfigureAwait(false);
         saved.AddRange(run.PendingHistory);
@@ -119,13 +119,8 @@ internal sealed class SagaEngine
   private async Task AdvanceAsync(SagaRun run, SagaLease lease, List<SagaHistoryEntry> saved, CancellationToken runToken)
   {
     var saga = run.Saga;
-    if (saga.Status == SagaStatus.Pending)
-    {
-      saga.Status = SagaStatus.Running;
-      saga.StartedAtUtc = run.Now;
-
+    if (saga.Start(run.Now))
       run.Record(SagaEventType.Started);
-    }
 
     while (true)
     {
@@ -154,7 +149,7 @@ internal sealed class SagaEngine
 
         if (outcome == RunOutcome.Done)
         {
-          run.Finish(CompensationRunner.AnyCompensationFailed(saga) ? SagaStatus.Failed : SagaStatus.Compensated);
+          run.Finish(saga.AnyCompensationFailed() ? SagaStatus.Failed : SagaStatus.Compensated);
           return;
         }
       }
@@ -164,7 +159,7 @@ internal sealed class SagaEngine
       }
 
       // Checkpoint: the step's result is stored before the next step runs.
-      saga.UpdatedAtUtc = run.Now;
+      saga.MarkUpdated(run.Now);
 
       await _queue.SaveAsync(lease, saga, run.PendingHistory, releaseLease: false, runToken).ConfigureAwait(false);
 
@@ -176,7 +171,7 @@ internal sealed class SagaEngine
   private async Task PostponeUnknownSagaTypeAsync(SagaRecord saga, SagaLease lease, NativeOrchestratorOptions options)
   {
     SagaLog.UnknownSagaType(_logger, saga.Id, saga.SagaType, options.UnknownSagaTypeRetryDelay);
-    saga.NextRunAtUtc = _timeProvider.GetUtcNow() + options.UnknownSagaTypeRetryDelay;
+    saga.ScheduleAt(_timeProvider.GetUtcNow() + options.UnknownSagaTypeRetryDelay);
     try
     {
       await _queue.SaveAsync(lease, saga, [], releaseLease: true, CancellationToken.None).ConfigureAwait(false);
