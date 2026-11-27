@@ -2,7 +2,7 @@ namespace NativeOrchestrator;
 
 /// <summary>
 /// Options for one schedule, as named options (the name is the schedule name). Set in code by
-/// <see cref="NativeOrchestratorBuilder.AddSchedule{TData}"/>, then overridden by <c>Schedules:{name}</c> when the
+/// <see cref="SagaOrchestratorBuilder.AddSchedule{TData}"/>, then overridden by <c>Schedules:{name}</c> when the
 /// orchestrator is added with a configuration section. Read at every occurrence, so configuration changes apply without
 /// a restart.
 /// </summary>

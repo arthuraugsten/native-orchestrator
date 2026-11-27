@@ -8,12 +8,12 @@ using NativeOrchestrator.Data.SqlServer;
 namespace NativeOrchestrator;
 
 /// <summary>Adds the SQL Server saga store.</summary>
-public static class SqlServerNativeOrchestratorBuilderExtensions
+public static class SqlServerSagaOrchestratorBuilderExtensions
 {
   /// <summary>Stores sagas in SQL Server, through EF Core, with options set in code.</summary>
   /// <param name="builder">The orchestrator builder.</param>
   /// <param name="configure">Sets the options; at least <see cref="SqlServerSagaStoreOptions.ConnectionString"/>.</param>
-  public static NativeOrchestratorBuilder UseSqlServer(this NativeOrchestratorBuilder builder, Action<SqlServerSagaStoreOptions> configure)
+  public static SagaOrchestratorBuilder UseSqlServer(this SagaOrchestratorBuilder builder, Action<SqlServerSagaStoreOptions> configure)
   {
     ArgumentNullException.ThrowIfNull(builder);
     ArgumentNullException.ThrowIfNull(configure);
@@ -25,8 +25,8 @@ public static class SqlServerNativeOrchestratorBuilderExtensions
   /// <param name="builder">The orchestrator builder.</param>
   /// <param name="configuration">The section with the <see cref="SqlServerSagaStoreOptions"/> values.</param>
   /// <param name="configure">Sets further options in code, after binding (for example the connection string).</param>
-  public static NativeOrchestratorBuilder UseSqlServer(
-    this NativeOrchestratorBuilder builder,
+  public static SagaOrchestratorBuilder UseSqlServer(
+    this SagaOrchestratorBuilder builder,
     IConfiguration configuration,
     Action<SqlServerSagaStoreOptions>? configure = null)
   {
@@ -38,7 +38,7 @@ public static class SqlServerNativeOrchestratorBuilderExtensions
     return AddSqlServer(builder);
   }
 
-  private static NativeOrchestratorBuilder AddSqlServer(NativeOrchestratorBuilder builder)
+  private static SagaOrchestratorBuilder AddSqlServer(SagaOrchestratorBuilder builder)
   {
     var services = builder.Services;
     services.AddOptions<SqlServerSagaStoreOptions>().ValidateOnStart();

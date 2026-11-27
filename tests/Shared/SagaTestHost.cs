@@ -39,7 +39,7 @@ public sealed class SagaTestHost : IAsyncDisposable
   /// <summary>Creates a host with <see cref="ScriptedSaga"/> registered as <see cref="SagaType"/>.</summary>
   /// <param name="shape">The saga's steps.</param>
   /// <param name="configureSaga">Saga options in code.</param>
-  /// <param name="configuration">Configuration values for <c>AddNativeOrchestrator(configuration)</c>.</param>
+  /// <param name="configuration">Configuration values for <c>AddSagaOrchestrator(configuration)</c>.</param>
   /// <param name="useStore">Picks the store; the in-memory store by default.</param>
   /// <param name="configureServices">Adds or replaces services.</param>
   /// <param name="configureOrchestrator">Adds further sagas or customisations.</param>
@@ -47,9 +47,9 @@ public sealed class SagaTestHost : IAsyncDisposable
     SagaShape shape,
     Action<SagaOptions>? configureSaga = null,
     IDictionary<string, string?>? configuration = null,
-    Action<NativeOrchestratorBuilder>? useStore = null,
+    Action<SagaOrchestratorBuilder>? useStore = null,
     Action<IServiceCollection>? configureServices = null,
-    Action<NativeOrchestratorBuilder>? configureOrchestrator = null)
+    Action<SagaOrchestratorBuilder>? configureOrchestrator = null)
   {
     var time = new FakeTimeProvider(Start);
     var script = new Script();
@@ -60,7 +60,7 @@ public sealed class SagaTestHost : IAsyncDisposable
     services.AddSingleton(script);
 
     var config = new ConfigurationBuilder().AddInMemoryCollection(configuration ?? new Dictionary<string, string?>()).Build();
-    var builder = services.AddNativeOrchestrator(config);
+    var builder = services.AddSagaOrchestrator(config);
     builder.AddSaga<ScriptedSaga, TestData>(SagaType, options =>
     {
       // Deterministic delays by default; tests that care set their own.

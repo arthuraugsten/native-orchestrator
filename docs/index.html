@@ -787,7 +787,7 @@ const DOCS = {
     { name: "SagaSchedule", asm: "Core", kind: "class", vis: "internal", role: "A schedule: saga type, data factory, correlation IDs", deps: ["ScheduledOccurrence"] },
     { name: "CronExpression", asm: "Core", kind: "class", vis: "internal", role: "Parses CRON and finds the next occurrence in a time zone", deps: [] },
     { name: "SagaWorkSignal", asm: "Core", kind: "class", vis: "internal", role: "Wakes the local worker when a saga is created", deps: [] },
-    { name: "SagaDiagnostics", asm: "Core", kind: "class", vis: "internal", role: "Meter and ActivitySource named NativeOrchestrator", deps: [] },
+    { name: "SagaDiagnostics", asm: "Core", kind: "class", vis: "internal", role: "Meter and ActivitySource named SagaOrchestrator", deps: [] },
     { name: "ISagaRepository", asm: "Core", kind: "interface", vis: "public", role: "Store: create, read, history, request cancellation", impl: ["InMemorySagaStore", "EntityFrameworkSagaStore"] },
     { name: "ISagaWorkQueue", asm: "Core", kind: "interface", vis: "public", role: "Store: claim, renew, save (fenced), release", impl: ["InMemorySagaStore", "EntityFrameworkSagaStore"] },
     { name: "ISagaStoreInitializer", asm: "Core", kind: "interface", vis: "public", role: "Prepares the store when the worker starts", impl: ["SagaDatabaseInitializer"] },
@@ -840,10 +840,10 @@ const DOCS = {
   protected override string? Validate(ReportGenerationData data) =>
     data.Recipients.Count == 0 ? "recipients must list at least one email address." : null;
 }` },
-        { label: "Program.cs", lang: "cs", code: `builder.Services.AddNativeOrchestrator(configuration.GetSection("NativeOrchestrator"))
+        { label: "Program.cs", lang: "cs", code: `builder.Services.AddSagaOrchestrator(configuration.GetSection("SagaOrchestrator"))
   .AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name)
   .UseSqlServer(
-    configuration.GetSection("NativeOrchestrator:SqlServer"),
+    configuration.GetSection("SagaOrchestrator:SqlServer"),
     sql => sql.ConnectionString = configuration.GetConnectionString("Sagas") ?? "")
   .ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));` },
       ],
@@ -1221,9 +1221,9 @@ internal sealed partial class AppJsonContext : JsonSerializerContext;` },
         "SagaRecord and StepRecord have private setters, since only the engine changes them. A store that doesn't use EF Core rebuilds them with SagaRecord.Restore and StepRecord.Restore, calls IncrementVersion after a save, and can use RequestCancellation for the cancellation rules.",
       ],
       code: [
-        { label: "SQL Server", lang: "cs", code: `.UseSqlServer(configuration.GetSection("NativeOrchestrator:SqlServer"), sql => sql.ConnectionString = connectionString)` },
+        { label: "SQL Server", lang: "cs", code: `.UseSqlServer(configuration.GetSection("SagaOrchestrator:SqlServer"), sql => sql.ConnectionString = connectionString)` },
         { label: "Health check", lang: "cs", code: `builder.Services.AddHealthChecks().AddSqlServerSagaStore();` },
-        { label: "Tests", lang: "cs", code: `services.AddNativeOrchestrator()
+        { label: "Tests", lang: "cs", code: `services.AddSagaOrchestrator()
   .AddSaga<OrderSaga, OrderData>("orders")
   .UseInMemoryStore();` },
         { label: "Migrations", lang: "sh", code: `dotnet tool restore
@@ -1235,16 +1235,16 @@ dotnet ef migrations script --idempotent --project src/NativeOrchestrator.Data.S
       id: "observability",
       group: "Operate",
       title: "Observability",
-      summary: "Source-generated logs, a Meter and an ActivitySource, all named NativeOrchestrator, plus a database health check in the app.",
+      summary: "Source-generated logs, a Meter and an ActivitySource, all named SagaOrchestrator, plus a database health check in the app.",
       points: [
-        "Metrics: nativeorchestrator.steps, nativeorchestrator.step.duration, nativeorchestrator.sagas.finished, nativeorchestrator.schedule.occurrences.",
+        "Metrics: sagaorchestrator.steps, sagaorchestrator.step.duration, sagaorchestrator.sagas.finished, sagaorchestrator.schedule.occurrences.",
         "Activity saga.run with saga.id, saga.type and saga.status tags.",
         "SagaHistory keeps every event; the API serves it at GET /sagas/{id}/history.",
       ],
       code: [
         { label: "OpenTelemetry", lang: "cs", code: `builder.Services.AddOpenTelemetry()
-  .WithTracing(tracing => tracing.AddSource(NativeOrchestratorDiagnostics.ActivitySourceName))
-  .WithMetrics(metrics => metrics.AddMeter(NativeOrchestratorDiagnostics.MeterName));` },
+  .WithTracing(tracing => tracing.AddSource(SagaOrchestratorDiagnostics.ActivitySourceName))
+  .WithMetrics(metrics => metrics.AddMeter(SagaOrchestratorDiagnostics.MeterName));` },
       ],
     },
     {
@@ -1274,12 +1274,12 @@ public async Task A_failed_step_compensates_the_succeeded_ones()
   ],
 
   configuration: [
-    ["NativeOrchestrator", "WorkerEnabled", "true", "Runs the worker and scheduler in this instance."],
-    ["NativeOrchestrator", "MaxConcurrency", "16", "Sagas run at once per instance."],
-    ["NativeOrchestrator", "ScanInterval", "00:00:05", "How often the worker looks for due sagas; also the scheduler's retry delay."],
-    ["NativeOrchestrator", "LeaseDuration / LeaseRenewalInterval", "5 min / 1 min", "How long a claim lasts and how often it is renewed."],
-    ["NativeOrchestrator", "UnknownSagaTypeRetryDelay", "00:05:00", "Delay for a claimed saga whose type isn't registered (rolling deployments)."],
-    ["NativeOrchestrator", "MaxErrorLength", "4000", "Longer error messages are truncated."],
+    ["SagaOrchestrator", "WorkerEnabled", "true", "Runs the worker and scheduler in this instance."],
+    ["SagaOrchestrator", "MaxConcurrency", "16", "Sagas run at once per instance."],
+    ["SagaOrchestrator", "ScanInterval", "00:00:05", "How often the worker looks for due sagas; also the scheduler's retry delay."],
+    ["SagaOrchestrator", "LeaseDuration / LeaseRenewalInterval", "5 min / 1 min", "How long a claim lasts and how often it is renewed."],
+    ["SagaOrchestrator", "UnknownSagaTypeRetryDelay", "00:05:00", "Delay for a claimed saga whose type isn't registered (rolling deployments)."],
+    ["SagaOrchestrator", "MaxErrorLength", "4000", "Longer error messages are truncated."],
     ["SagaDefaults / Sagas:{name}", "MaxDuration", "7 days", "The saga times out and compensates after this."],
     ["SagaDefaults / Sagas:{name}", "StepTimeout / ExecutionTimeout", "24 h / 2 min", "Per step across retries and polls / per call."],
     ["SagaDefaults / Sagas:{name}", "Retry", "8 attempts…", "MaxAttempts, InitialDelay, MaxDelay, Multiplier, UseJitter."],
@@ -1288,7 +1288,7 @@ public async Task A_failed_step_compensates_the_succeeded_ones()
     ["SagaDefaults / Sagas:{name}", "SingleInstance / FailedBlocksNewStarts", "false / true", "One active saga of the type; whether a failed one keeps blocking."],
     ["Sagas:{name}:Steps:{step}", "Timeout, ExecutionTimeout, ContinueOnError, Retry, Polling, CompensationRetry", "from the saga", "Per-step overrides; configuration wins over code."],
     ["Schedules:{name}", "Cron, TimeZone, Enabled, MisfireThreshold", "code, UTC, true, 1 h", "Read at every wake-up, so changes apply without a restart."],
-    ["NativeOrchestrator:SqlServer", "CommandTimeout, MaxRetryCount, UseLockingClaim, ApplyMigrationsOnStartup", "30 s, 6, true, false", "SQL Server store options."],
+    ["SagaOrchestrator:SqlServer", "CommandTimeout, MaxRetryCount, UseLockingClaim, ApplyMigrationsOnStartup", "30 s, 6, true, false", "SQL Server store options."],
   ],
 };
 

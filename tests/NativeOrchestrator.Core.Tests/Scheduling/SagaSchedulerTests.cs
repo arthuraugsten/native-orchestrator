@@ -227,7 +227,7 @@ public sealed class SagaSchedulerTests
   [Fact]
   public void Registering_two_schedules_with_the_same_name_throws()
   {
-    var builder = new ServiceCollection().AddNativeOrchestrator();
+    var builder = new ServiceCollection().AddSagaOrchestrator();
     builder.AddSchedule("nightly", "orders", "@daily", _ => new TestData());
 
     Assert.Throws<InvalidOperationException>(() => builder.AddSchedule("nightly", "orders", "@hourly", _ => new TestData()));

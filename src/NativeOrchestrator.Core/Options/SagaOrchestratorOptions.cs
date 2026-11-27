@@ -1,7 +1,7 @@
 namespace NativeOrchestrator;
 
 /// <summary>Options for the orchestrator as a whole: the worker that claims and runs due sagas.</summary>
-public sealed class NativeOrchestratorOptions
+public sealed class SagaOrchestratorOptions
 {
   /// <summary>Whether this instance runs the worker. Turn it off for an instance that only starts and reads sagas.</summary>
   public bool WorkerEnabled { get; set; } = true;

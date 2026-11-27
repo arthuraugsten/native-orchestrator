@@ -1,6 +1,6 @@
 namespace NativeOrchestrator;
 
-/// <summary>Computes the delay before an attempt, for retries and polls. Replace it with <see cref="NativeOrchestratorBuilder.UseBackoffStrategy{TStrategy}"/>.</summary>
+/// <summary>Computes the delay before an attempt, for retries and polls. Replace it with <see cref="SagaOrchestratorBuilder.UseBackoffStrategy{TStrategy}"/>.</summary>
 public interface IBackoffStrategy
 {
   /// <summary>The delay before the next attempt.</summary>

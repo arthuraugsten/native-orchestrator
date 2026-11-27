@@ -3,7 +3,7 @@ namespace NativeOrchestrator;
 /// <summary>
 /// Receives each history entry after it has been saved: saga started, step succeeded, compensation started, and so on.
 /// Use it to publish events, send alerts or update read models. Register it with
-/// <see cref="NativeOrchestratorBuilder.AddObserver{TObserver}"/>.
+/// <see cref="SagaOrchestratorBuilder.AddObserver{TObserver}"/>.
 /// </summary>
 /// <remarks>
 /// Observers are notified at most once, after the save; an exception is logged and doesn't affect the saga. For

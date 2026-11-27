@@ -8,14 +8,14 @@ namespace NativeOrchestrator.Data.SqlServer;
 /// Adds the EF Core saga store. EF Core is how this provider reaches SQL Server, not part of the public API:
 /// <c>UseSqlServer</c> calls this.
 /// </summary>
-internal static class EntityFrameworkNativeOrchestratorBuilderExtensions
+internal static class EntityFrameworkSagaOrchestratorBuilderExtensions
 {
   /// <summary>
   /// Stores sagas with EF Core. <paramref name="configureDbContext"/> picks the database provider and must set the
   /// migrations assembly.
   /// </summary>
-  public static NativeOrchestratorBuilder UseEntityFrameworkCore(
-    this NativeOrchestratorBuilder builder,
+  public static SagaOrchestratorBuilder UseEntityFrameworkCore(
+    this SagaOrchestratorBuilder builder,
     Action<IServiceProvider, DbContextOptionsBuilder> configureDbContext,
     Action<EntityFrameworkSagaStoreOptions>? configure = null)
   {

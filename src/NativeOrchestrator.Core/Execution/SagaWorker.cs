@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace NativeOrchestrator;
 
 /// <summary>
-/// The hosted service that claims due sagas and runs them, up to <see cref="NativeOrchestratorOptions.MaxConcurrency"/>
+/// The hosted service that claims due sagas and runs them, up to <see cref="SagaOrchestratorOptions.MaxConcurrency"/>
 /// at once. Any number of instances can run it against the same store.
 /// </summary>
 internal sealed class SagaWorker : BackgroundService
@@ -14,7 +14,7 @@ internal sealed class SagaWorker : BackgroundService
   private readonly SagaEngine _engine;
   private readonly ISagaStoreInitializer[] _initializers;
   private readonly SagaWorkSignal _signal;
-  private readonly NativeOrchestratorOptions _options;
+  private readonly SagaOrchestratorOptions _options;
   private readonly TimeProvider _timeProvider;
   private readonly ILogger<SagaWorker> _logger;
   private readonly Lock _runningLock = new();
@@ -26,7 +26,7 @@ internal sealed class SagaWorker : BackgroundService
     SagaEngine engine,
     IEnumerable<ISagaStoreInitializer> initializers,
     SagaWorkSignal signal,
-    IOptions<NativeOrchestratorOptions> options,
+    IOptions<SagaOrchestratorOptions> options,
     TimeProvider timeProvider,
     ILogger<SagaWorker> logger)
   {

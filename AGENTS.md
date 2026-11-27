@@ -83,12 +83,12 @@ src/
     Execution/    SagaWorker, SagaEngine, SagaStepExecutor, CompensationRunner, LeaseKeeper, StepInvoker, SagaRun, SagaWorkSignal
     Persistence/  ISagaRepository, ISagaWorkQueue, ISagaStoreInitializer, records, exceptions, serializer
     Policies/     IRetryPolicy, DefaultRetryPolicy, IBackoffStrategy, ExponentialBackoffStrategy
-    Options/      NativeOrchestratorOptions, SagaOptions, StepOptions, RetryOptions, PollingOptions, validators
+    Options/      SagaOrchestratorOptions, SagaOptions, StepOptions, RetryOptions, PollingOptions, validators
     Results/      StepResult, PollResult, statuses, SagaSnapshot, exceptions
     Client/       ISagaClient, SagaClient
     Scheduling/   CronExpression, SagaScheduler, SagaScheduleOptions, SagaScheduleRegistry, ScheduledOccurrence
     Observability/ SagaLog, SagaDiagnostics, ISagaLifecycleObserver
-    DependencyInjection/  AddNativeOrchestrator, NativeOrchestratorBuilder
+    DependencyInjection/  AddSagaOrchestrator, SagaOrchestratorBuilder
   NativeOrchestrator.Data.InMemory/         # InMemorySagaStore, UseInMemoryStore (tests and local experiments)
   NativeOrchestrator.Data.SqlServer/        # UseSqlServer, options, health check, SqlServerClaimStrategy
     EntityFrameworkCore/  SagaDbContext, mapping (Model/), EntityFrameworkSagaStore, claim strategies (internal)
@@ -206,7 +206,7 @@ Ordered by what to do first. Items marked **(gap)** are gaps in the current impl
 - [ ] **Real external systems:** replace the `ExternalServices` URLs, set `Simulated:Enabled` to `false`, and remove
       the `Simulated/` folder when it is no longer needed.
 - [ ] **Migrations in the deployment** (`dotnet ef migrations bundle` or an idempotent script); keep `ApplyMigrationsOnStartup` off.
-- [ ] **OpenTelemetry:** export the `NativeOrchestrator` activity source and meter, plus ASP.NET Core, HttpClient and EF Core.
+- [ ] **OpenTelemetry:** export the `SagaOrchestrator` activity source and meter, plus ASP.NET Core, HttpClient and EF Core.
 - [ ] **Liveness and readiness** health checks (database readiness separate from process liveness).
 - [ ] **Operations endpoints:** list and filter sagas (`GET /sagas?status=Failed&type=...`, paged); retry a failed
       compensation; resume or skip a step for a saga that needs manual action; release a failed single-instance saga

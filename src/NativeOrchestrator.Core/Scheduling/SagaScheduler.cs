@@ -18,7 +18,7 @@ internal sealed class SagaScheduler : BackgroundService
   private readonly SagaScheduleRegistry _registry;
   private readonly ISagaClient _client;
   private readonly IOptionsMonitor<SagaScheduleOptions> _scheduleOptions;
-  private readonly NativeOrchestratorOptions _options;
+  private readonly SagaOrchestratorOptions _options;
   private readonly TimeProvider _timeProvider;
   private readonly SagaDiagnostics _diagnostics;
   private readonly ILogger<SagaScheduler> _logger;
@@ -31,7 +31,7 @@ internal sealed class SagaScheduler : BackgroundService
     SagaScheduleRegistry registry,
     ISagaClient client,
     IOptionsMonitor<SagaScheduleOptions> scheduleOptions,
-    IOptions<NativeOrchestratorOptions> options,
+    IOptions<SagaOrchestratorOptions> options,
     TimeProvider timeProvider,
     SagaDiagnostics diagnostics,
     ILogger<SagaScheduler> logger)

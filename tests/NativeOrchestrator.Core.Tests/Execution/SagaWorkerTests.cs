@@ -62,7 +62,7 @@ public sealed class SagaWorkerTests
     services.AddLogging();
     services.AddSingleton(new SagaShape().Step("A").PollingStep("Wait"));
     services.AddSingleton(script);
-    services.AddNativeOrchestrator(options =>
+    services.AddSagaOrchestrator(options =>
       {
         options.WorkerEnabled = workerEnabled;
         options.ScanInterval = TimeSpan.FromMilliseconds(50);
