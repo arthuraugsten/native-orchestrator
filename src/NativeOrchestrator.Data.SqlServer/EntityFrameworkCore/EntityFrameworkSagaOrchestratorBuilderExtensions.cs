@@ -21,13 +21,18 @@ internal static class EntityFrameworkSagaOrchestratorBuilderExtensions
   {
     ArgumentNullException.ThrowIfNull(builder);
     ArgumentNullException.ThrowIfNull(configureDbContext);
+
     var services = builder.Services;
+
     services.AddDbContextFactory<SagaDbContext>(configureDbContext);
     services.AddOptions<EntityFrameworkSagaStoreOptions>();
+
     if (configure is not null)
       services.Configure(configure);
+
     services.TryAddSingleton<ISagaClaimStrategy, DefaultClaimStrategy>();
     services.TryAddEnumerable(ServiceDescriptor.Singleton<ISagaStoreInitializer, SagaDatabaseInitializer>());
+
     return builder.UseStore<EntityFrameworkSagaStore>();
   }
 }

@@ -8,7 +8,9 @@ internal sealed class SagaRecordConfiguration : IEntityTypeConfiguration<SagaRec
   public void Configure(EntityTypeBuilder<SagaRecord> builder)
   {
     builder.ToTable(SagaModel.SagasTable, SagaModel.Schema);
+
     builder.HasKey(s => s.Id);
+
     builder.Property(s => s.Id).ValueGeneratedNever();
     builder.Property(s => s.SagaType).HasMaxLength(SagaModel.SagaTypeLength).IsRequired();
     builder.Property(s => s.CorrelationId).HasMaxLength(SagaModel.CorrelationIdLength);
@@ -27,12 +29,15 @@ internal sealed class SagaRecordConfiguration : IEntityTypeConfiguration<SagaRec
       .WithOne()
       .HasForeignKey(SagaModel.StepSagaId)
       .OnDelete(DeleteBehavior.Cascade);
+
     builder.Navigation(s => s.Steps).AutoInclude(false);
 
     // Idempotent starts: one saga per type and correlation ID (null correlation IDs aren't constrained).
     builder.HasIndex(s => new { s.SagaType, s.CorrelationId }).IsUnique();
+
     // Single-instance sagas: one active saga per key (null keys aren't constrained; finished sagas have none).
     builder.HasIndex(s => s.ActiveInstanceKey).IsUnique();
+
     // Claiming: due sagas by status and due time.
     builder.HasIndex(s => new { s.Status, s.NextRunAtUtc });
   }
