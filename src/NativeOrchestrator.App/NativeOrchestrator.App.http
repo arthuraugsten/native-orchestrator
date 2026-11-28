@@ -1,131 +1,85 @@
 # NativeOrchestrator demo requests. Start SQL Server (docker compose up -d) and the app (dotnet run), then send
 # each request with VS Code's REST Client or Visual Studio. Every start returns a statusUrl: poll it until the saga's
-# status is Completed, Compensated or Failed. The simulated systems' trigger values are in Simulated/SimulatedTriggers.cs.
+# status is Completed, Compensated or Failed. ApiManagementService (simulated in memory) holds the trigger values.
+#
+# The client saga also starts by itself every 5 minutes (schedule "client-every-5-minutes"), and only one runs at a
+# time: if a scheduled run is active, the starts below answer 409, and if one of these is active, the occurrence is
+# skipped. Each simulated operation takes a random 0-20 s.
 
 @host = http://localhost:5080
 
-### Customer onboarding: succeeds (identity check takes ~10 s)
-# @name onboarding
-POST {{host}}/sagas/customer-onboarding
+### Client run: provisions, then synchronizes (Completed)
+# @name run
+POST {{host}}/sagas/client
 Content-Type: application/json
 
 {
-  "correlationId": "customer-1001",
-  "data": { "customerName": "Ada Lovelace", "email": "ada@example.test" }
+  "correlationId": "client-manual-1",
+  "data": { "runName": "client-manual-1" }
 }
 
 ### Status
-GET {{host}}{{onboarding.response.body.$.statusUrl}}
+GET {{host}}{{run.response.body.$.statusUrl}}
 
 ### History
-GET {{host}}{{onboarding.response.body.$.statusUrl}}/history
+GET {{host}}{{run.response.body.$.statusUrl}}/history
+
+### Another run while the first is active: 409, outcome AlreadyRunning, with the running saga's ID
+POST {{host}}/sagas/client
+Content-Type: application/json
+
+{ "data": { "runName": "client-manual-2" } }
 
 ### Same correlation ID again: returns the existing saga ("created": false)
-POST {{host}}/sagas/customer-onboarding
+POST {{host}}/sagas/client
 Content-Type: application/json
 
 {
-  "correlationId": "customer-1001",
-  "data": { "customerName": "Ada Lovelace", "email": "ada@example.test" }
+  "correlationId": "client-manual-1",
+  "data": { "runName": "client-manual-1" }
 }
 
-### Identity rejected: the reserved account is deleted (status Compensated)
-# @name rejected
-POST {{host}}/sagas/customer-onboarding
+### Provisioning fails: nothing succeeded, so nothing is compensated (Compensated, StepFailed)
+# @name failProvision
+POST {{host}}/sagas/client
 Content-Type: application/json
 
-{ "data": { "customerName": "REJECT Grace Hopper", "email": "grace@example.test" } }
+{ "data": { "runName": "FAIL-PROVISION manual" } }
 
 ###
-GET {{host}}{{rejected.response.body.$.statusUrl}}
+GET {{host}}{{failProvision.response.body.$.statusUrl}}
 
-### Identity never verified: the step times out after 1 minute in Development (Compensated, StepTimedOut)
-# @name slow
-POST {{host}}/sagas/customer-onboarding
+### Synchronization fails: provisioning is reverted (Compensated, StepFailed)
+# @name failSync
+POST {{host}}/sagas/client
 Content-Type: application/json
 
-{ "data": { "customerName": "SLOW Alan Turing", "email": "alan@example.test" } }
+{ "data": { "runName": "FAIL-SYNC manual" } }
 
 ###
-GET {{host}}{{slow.response.body.$.statusUrl}}
+GET {{host}}{{failSync.response.body.$.statusUrl}}
 
-### Cancel it while it waits (status Compensated, Cancelled)
-POST {{host}}{{slow.response.body.$.statusUrl}}/cancel
-
-### Flaky accounts API (503 twice): the resilience handler retries inside the call; the saga doesn't notice
-# @name flaky
-POST {{host}}/sagas/customer-onboarding
+### Cancel a run while it waits (Compensated, Cancelled)
+# @name cancelled
+POST {{host}}/sagas/client
 Content-Type: application/json
 
-{ "data": { "customerName": "Barbara Liskov", "email": "flaky-barbara@example.test" } }
+{ "data": { "runName": "client-cancelled" } }
 
 ###
-GET {{host}}{{flaky.response.body.$.statusUrl}}
-
-### Welcome email bounces: the step has ContinueOnError, so the saga still completes
-# @name bounce
-POST {{host}}/sagas/customer-onboarding
-Content-Type: application/json
-
-{ "data": { "customerName": "Edsger Dijkstra", "email": "edsger@bounce.test" } }
-
-###
-GET {{host}}{{bounce.response.body.$.statusUrl}}
+POST {{host}}{{cancelled.response.body.$.statusUrl}}/cancel
 
 ### Invalid data: 400
-POST {{host}}/sagas/customer-onboarding
+POST {{host}}/sagas/client
 Content-Type: application/json
 
-{ "data": { "customerName": "", "email": "nobody" } }
+{ "data": { "runName": "" } }
 
 ### Unknown saga type: 404
 POST {{host}}/sagas/unknown
 Content-Type: application/json
 
 { "data": {} }
-
-### Report generation: polls until the report is built (20 s here; hours in real life), then emails the link.
-# report-generation is single-instance: wait for each report to finish before starting the next one.
-# @name report
-POST {{host}}/sagas/report-generation
-Content-Type: application/json
-
-{
-  "correlationId": "monthly-sales-2026-10",
-  "data": { "reportName": "Monthly sales", "recipients": ["finance@example.test"], "durationSeconds": 20 }
-}
-
-###
-GET {{host}}{{report.response.body.$.statusUrl}}
-
-### Another report while the first is still building: 409, outcome AlreadyRunning, with the running saga's ID
-POST {{host}}/sagas/report-generation
-Content-Type: application/json
-
-{ "data": { "reportName": "Daily sales", "recipients": ["finance@example.test"], "durationSeconds": 5 } }
-
-### Report fails to build (status Compensated)
-# @name failedReport
-POST {{host}}/sagas/report-generation
-Content-Type: application/json
-
-{ "data": { "reportName": "FAIL Quarterly", "recipients": ["finance@example.test"], "durationSeconds": 5 } }
-
-###
-GET {{host}}{{failedReport.response.body.$.statusUrl}}
-
-### Report built, but the email bounces: the report is discarded (compensation), status Compensated
-# @name bouncedReport
-POST {{host}}/sagas/report-generation
-Content-Type: application/json
-
-{ "data": { "reportName": "Weekly churn", "recipients": ["cfo@bounce.test"], "durationSeconds": 5 } }
-
-###
-GET {{host}}{{bouncedReport.response.body.$.statusUrl}}
-
-### Emails the simulated notification system has sent
-GET {{host}}/simulated/notifications/email
 
 ### Health (checks the saga database)
 GET {{host}}/health

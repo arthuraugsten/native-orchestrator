@@ -1,15 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NativeOrchestrator.App.Api;
-using NativeOrchestrator.App.Sagas.CustomerOnboarding;
-using NativeOrchestrator.App.Sagas.ReportGeneration;
-using NativeOrchestrator.App.Simulated;
+using NativeOrchestrator.App.Sagas.Client;
 
 namespace NativeOrchestrator.App;
 
 /// <summary>
-/// Source-generated JSON for every type the app serializes: API bodies, saga data (stored by the orchestrator) and the
-/// external systems' bodies. Add new types here.
+/// Source-generated JSON for every type the app serializes: API bodies, saga data and step state (stored by the
+/// orchestrator). Add new types here.
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(StartSagaRequest))]
@@ -17,14 +15,5 @@ namespace NativeOrchestrator.App;
 [JsonSerializable(typeof(CancelSagaResponse))]
 [JsonSerializable(typeof(SagaSnapshot))]
 [JsonSerializable(typeof(IReadOnlyList<SagaHistoryEntry>))]
-[JsonSerializable(typeof(CustomerOnboardingData))]
-[JsonSerializable(typeof(ReportGenerationData))]
-[JsonSerializable(typeof(CreateAccountRequest))]
-[JsonSerializable(typeof(AccountResponse))]
-[JsonSerializable(typeof(VerificationRequest))]
-[JsonSerializable(typeof(VerificationResponse))]
-[JsonSerializable(typeof(EmailRequest))]
-[JsonSerializable(typeof(ReportRequest))]
-[JsonSerializable(typeof(ReportResponse))]
-[JsonSerializable(typeof(SentEmail[]))]
+[JsonSerializable(typeof(ClientSagaData))]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

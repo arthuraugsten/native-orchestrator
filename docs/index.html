@@ -468,7 +468,7 @@ const DOCS = {
 
   diagrams: {
     assemblies: `flowchart LR
-  App["NativeOrchestrator.App<br/>API, sagas, simulated systems"] --> SqlServer
+  App["NativeOrchestrator.App<br/>API, ClientSaga, simulated ApiManagementService"] --> SqlServer
   App --> Core
   SqlServer["NativeOrchestrator.Data.SqlServer<br/>UseSqlServer, EF Core store, locking claim, migrations"] --> Core
   InMemory["NativeOrchestrator.Data.InMemory<br/>UseInMemoryStore"] --> Core
@@ -642,8 +642,8 @@ const DOCS = {
   participant SB as Scheduler on B
   participant SC as ISagaClient
   participant DB as Store
-  Note over SA,SB: both wake at the occurrence (02:00)
-  SA->>SC: StartAsync(correlation schedule:nightly-sales:20261127T020000Z)
+  Note over SA,SB: both wake at the occurrence (12:30)
+  SA->>SC: StartAsync(correlation schedule:client-every-5-minutes:20261128T123000Z)
   SB->>SC: StartAsync(same correlation ID)
   SC->>DB: CreateAsync (A)
   DB-->>SC: created
@@ -815,6 +815,11 @@ const DOCS = {
     { name: "SqlServerClaimStrategy", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "UPDLOCK, READPAST, ROWLOCK claim", deps: ["SagaDbContext"] },
     { name: "SagaDatabaseInitializer", asm: "Data.SqlServer", kind: "class", vis: "internal", role: "Applies migrations when ApplyMigrationsOnStartup is on", deps: ["SagaDbContext"] },
     { name: "LoggingSagaObserver", asm: "App", kind: "class", vis: "public", role: "Example observer in the app", deps: [] },
+    { name: "ClientSaga", asm: "App", kind: "class", vis: "public", role: "The app's saga: provision, then synchronize; single-instance, every 5 minutes", deps: ["ProvisionClientStep", "SynchronizeClientStep"] },
+    { name: "ProvisionClientStep", asm: "App", kind: "class", vis: "public", role: "PollingSagaStep; compensates with RevertAsync", deps: ["IApiManagementService"] },
+    { name: "SynchronizeClientStep", asm: "App", kind: "class", vis: "public", role: "PollingSagaStep; compensates with RevertAsync", deps: ["IApiManagementService"] },
+    { name: "IApiManagementService", asm: "App", kind: "interface", vis: "public", role: "Operations behind API Management: start, status, revert", impl: ["ApiManagementService"] },
+    { name: "ApiManagementService", asm: "App", kind: "class", vis: "public", role: "In-memory simulation: each operation finishes after a random delay", deps: ["TimeProvider"] },
   ],
 
   features: [
@@ -829,19 +834,19 @@ const DOCS = {
         "Add TData (and step state types) to your JsonSerializerContext.",
       ],
       code: [
-        { label: "ReportGenerationSaga.cs", lang: "cs", code: `public sealed class ReportGenerationSaga : Saga<ReportGenerationData>
+        { label: "ClientSaga.cs", lang: "cs", code: `public sealed class ClientSaga : Saga<ClientSagaData>
 {
-  public const string Name = "report-generation";
+  public const string Name = "client";
 
-  protected override void Configure(ISagaBuilder<ReportGenerationData> saga) => saga
-    .Step<GenerateReportStep>(configure: step => step.Timeout = TimeSpan.FromHours(48))
-    .Step<PublishReportStep>();
+  protected override void Configure(ISagaBuilder<ClientSagaData> saga) => saga
+    .Step<ProvisionClientStep>()
+    .Step<SynchronizeClientStep>(configure: step => step.Timeout = TimeSpan.FromHours(6));
 
-  protected override string? Validate(ReportGenerationData data) =>
-    data.Recipients.Count == 0 ? "recipients must list at least one email address." : null;
+  protected override string? Validate(ClientSagaData data) =>
+    string.IsNullOrWhiteSpace(data.RunName) ? "runName is required." : null;
 }` },
         { label: "Program.cs", lang: "cs", code: `builder.Services.AddSagaOrchestrator(configuration.GetSection("SagaOrchestrator"))
-  .AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name)
+  .AddSaga<ClientSaga, ClientSagaData>(ClientSaga.Name)
   .UseSqlServer(
     configuration.GetSection("SagaOrchestrator:SqlServer"),
     sql => sql.ConnectionString = configuration.GetConnectionString("Sagas") ?? "")
@@ -1018,14 +1023,13 @@ const DOCS = {
     step.ContinueOnError = true;                     // a bounced email doesn't undo the onboarding
     step.CompensationRetry = new RetryOptions { MaxAttempts = 20 };
   });` },
-        { label: "Step state for compensation", lang: "cs", code: `public override async Task CompensateAsync(StepContext<ReportGenerationData> context, CancellationToken cancellationToken)
+        { label: "Step state for compensation", lang: "cs", code: `public override async Task CompensateAsync(StepContext<ClientSagaData> context, CancellationToken cancellationToken)
 {
-  // A polling step's operation is in the step state; here, the report's status URL.
-  if (!context.TryGetState<HttpPollingOperation>(out var operation))
+  // A polling step's operation is in the step state; here, the operation ID.
+  if (!context.TryGetState<string>(out var operation))
     return;
-  using var request = new HttpRequestMessage(HttpMethod.Delete, operation.StatusUri);
-  using var response = await _httpClientFactory.CreateClient(ClientName).SendAsync(request, cancellationToken);
-  SagaHttp.ThrowIfFailed(response);
+
+  await _apiManagement.RevertAsync(operation, cancellationToken);
 }` },
       ],
     },
@@ -1065,17 +1069,17 @@ const DOCS = {
         "CancelAsync returns Requested, AlreadyRequested, NotCancellable or NotFound.",
       ],
       code: [
-        { label: "From code", lang: "cs", code: `var result = await sagaClient.StartAsync(ReportGenerationSaga.Name, data, correlationId: "monthly-sales-2026-10");
+        { label: "From code", lang: "cs", code: `var result = await sagaClient.StartAsync(ClientSaga.Name, data, correlationId: "client-manual-1");
 if (result.Outcome == SagaStartOutcome.AlreadyRunning)
-  logger.LogInformation("A report is already running: {SagaId}", result.SagaId);
+  logger.LogInformation("A client run is already active: {SagaId}", result.SagaId);
 
 var snapshot = await sagaClient.GetAsync(result.SagaId);
 var history = await sagaClient.GetHistoryAsync(result.SagaId);
 var cancel = await sagaClient.CancelAsync(result.SagaId);` },
-        { label: "HTTP API", lang: "http", code: `POST /sagas/report-generation
+        { label: "HTTP API", lang: "http", code: `POST /sagas/client
 Content-Type: application/json
 
-{ "correlationId": "monthly-sales-2026-10", "data": { "reportName": "Monthly sales", "recipients": ["finance@example.test"] } }
+{ "correlationId": "client-manual-1", "data": { "runName": "client-manual-1" } }
 
 # 202 { sagaId, created, outcome, statusUrl }, 409 when AlreadyRunning, 400 invalid data, 404 unknown type
 GET /sagas/{id}
@@ -1094,12 +1098,12 @@ POST /sagas/{id}/cancel` },
         "A repeated correlation ID is checked first and still returns Duplicate.",
       ],
       code: [
-        { label: "Program.cs", lang: "cs", code: `.AddSaga<ReportGenerationSaga, ReportGenerationData>(ReportGenerationSaga.Name, saga =>
+        { label: "Program.cs", lang: "cs", code: `.AddSaga<ClientSaga, ClientSagaData>(ClientSaga.Name, saga =>
 {
   saga.SingleInstance = true;
   saga.FailedBlocksNewStarts = false;   // let the next one start as soon as one fails
 })` },
-        { label: "appsettings.json", lang: "json", code: `"Sagas": { "report-generation": { "SingleInstance": true, "FailedBlocksNewStarts": true } }` },
+        { label: "appsettings.json", lang: "json", code: `"Sagas": { "client": { "SingleInstance": true, "FailedBlocksNewStarts": false } }` },
         { label: "Release a failed saga (SQL)", lang: "sql", code: `UPDATE saga.Sagas SET ActiveInstanceKey = NULL WHERE Id = '<saga id>' AND Status = 'Failed'` },
       ],
     },
@@ -1114,13 +1118,13 @@ POST /sagas/{id}/cancel` },
         "Only the latest missed occurrence starts after downtime; an occurrence blocked by SingleInstance is skipped.",
       ],
       code: [
-        { label: "Program.cs", lang: "cs", code: `.AddSchedule("nightly-sales", ReportGenerationSaga.Name, "0 2 * * *", occurrence => new ReportGenerationData
+        { label: "Program.cs", lang: "cs", code: `.AddSchedule(ClientSaga.ScheduleName, ClientSaga.Name, "*/5 * * * *", occurrence => new ClientSagaData
 {
-  ReportName = $"Daily sales {occurrence.ScheduledAtUtc.AddDays(-1):yyyy-MM-dd}",
-  Recipients = ["finance@example.test"],
-}, schedule => schedule.TimeZone = "Europe/Lisbon")` },
+  RunName = $"client-{occurrence.ScheduledAtUtc:yyyyMMdd-HHmm}",
+  ScheduledAtUtc = occurrence.ScheduledAtUtc,
+})` },
         { label: "appsettings.json", lang: "json", code: `"Schedules": {
-  "nightly-sales": { "Cron": "0 2 * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00" }
+  "client-every-5-minutes": { "Cron": "*/5 * * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00" }
 }` },
       ],
     },
@@ -1205,7 +1209,7 @@ POST /sagas/{id}/cancel` },
         { label: "Program.cs", lang: "cs", code: `.ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default))
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true)]
-[JsonSerializable(typeof(ReportGenerationData))]
+[JsonSerializable(typeof(ClientSagaData))]
 internal sealed partial class AppJsonContext : JsonSerializerContext;` },
       ],
     },
