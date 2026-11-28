@@ -9,8 +9,8 @@ public sealed class SagaClientTests
   {
     await using var host = SagaTestHost.Create(new SagaShape().Step("A"));
 
-    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "order-42");
-    var second = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "order-42");
+    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "order-42", TestContext.Current.CancellationToken);
+    var second = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "order-42", TestContext.Current.CancellationToken);
 
     Assert.True(first.Created);
     Assert.False(second.Created);
@@ -23,9 +23,9 @@ public sealed class SagaClientTests
   {
     await using var host = SagaTestHost.Create(new SagaShape().Step("A").PollingStep("B"), options => options.SingleInstance = true);
 
-    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     await host.RunUntilWaitingAsync(first.SagaId);
-    var whileWaiting = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "another-caller");
+    var whileWaiting = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), "another-caller", TestContext.Current.CancellationToken);
 
     Assert.Equal(SagaStartOutcome.Created, first.Outcome);
     Assert.Equal(SagaStartOutcome.AlreadyRunning, whileWaiting.Outcome);
@@ -36,7 +36,7 @@ public sealed class SagaClientTests
     var finished = await host.RunUntilFinishedAsync(first.SagaId);
     Assert.Equal(SagaStatus.Completed, finished.Status);
 
-    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStartOutcome.Created, next.Outcome);
     Assert.NotEqual(first.SagaId, next.SagaId);
   }
@@ -47,10 +47,10 @@ public sealed class SagaClientTests
     await using var host = SagaTestHost.Create(new SagaShape().Step("A").Step("B"), options => options.SingleInstance = true);
     host.Script.Execute["B"] = _ => StepResult.Failure("No.");
 
-    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStatus.Compensated, (await host.RunUntilFinishedAsync(first.SagaId)).Status);
 
-    Assert.Equal(SagaStartOutcome.Created, (await host.Client.StartAsync(SagaTestHost.SagaType, new TestData())).Outcome);
+    Assert.Equal(SagaStartOutcome.Created, (await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken)).Outcome);
   }
 
   [Fact]
@@ -60,10 +60,10 @@ public sealed class SagaClientTests
     host.Script.Execute["B"] = _ => StepResult.Failure("No.");
     host.Script.Compensate["A"] = _ => throw new TimeoutException("undo service down");
 
-    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStatus.Failed, (await host.RunUntilFinishedAsync(first.SagaId)).Status);
 
-    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStartOutcome.AlreadyRunning, next.Outcome);
     Assert.Equal(first.SagaId, next.SagaId);
   }
@@ -86,10 +86,10 @@ public sealed class SagaClientTests
     host.Script.Execute["B"] = _ => StepResult.Failure("No.");
     host.Script.Compensate["A"] = _ => throw new TimeoutException("undo service down");
 
-    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var first = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStatus.Failed, (await host.RunUntilFinishedAsync(first.SagaId)).Status);
 
-    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    var next = await host.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
     Assert.Equal(SagaStartOutcome.Created, next.Outcome);
     Assert.NotEqual(first.SagaId, next.SagaId);
   }
@@ -102,11 +102,11 @@ public sealed class SagaClientTests
       configuration: new Dictionary<string, string?> { [$"Sagas:{SagaTestHost.SagaType}:SingleInstance"] = "true" });
     await using var unconfigured = SagaTestHost.Create(new SagaShape().Step("A"));
 
-    await configured.Client.StartAsync(SagaTestHost.SagaType, new TestData());
-    await unconfigured.Client.StartAsync(SagaTestHost.SagaType, new TestData());
+    await configured.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
+    await unconfigured.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken);
 
-    Assert.Equal(SagaStartOutcome.AlreadyRunning, (await configured.Client.StartAsync(SagaTestHost.SagaType, new TestData())).Outcome);
-    Assert.Equal(SagaStartOutcome.Created, (await unconfigured.Client.StartAsync(SagaTestHost.SagaType, new TestData())).Outcome);
+    Assert.Equal(SagaStartOutcome.AlreadyRunning, (await configured.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken)).Outcome);
+    Assert.Equal(SagaStartOutcome.Created, (await unconfigured.Client.StartAsync(SagaTestHost.SagaType, new TestData(), cancellationToken: TestContext.Current.CancellationToken)).Outcome);
   }
 
   [Fact]
@@ -117,14 +117,14 @@ public sealed class SagaClientTests
     using var invalid = JsonDocument.Parse("""{"trace":42}""");
     using var rejected = JsonDocument.Parse("""{"reject":"Customer is blocked."}""");
 
-    var started = await host.Client.StartAsync(SagaTestHost.SagaType, valid.RootElement);
-    var saga = await host.Client.GetAsync(started.SagaId);
+    var started = await host.Client.StartAsync(SagaTestHost.SagaType, valid.RootElement, cancellationToken: TestContext.Current.CancellationToken);
+    var saga = await host.Client.GetAsync(started.SagaId, TestContext.Current.CancellationToken);
 
     Assert.Equal(SagaStatus.Pending, saga?.Status);
     Assert.Equal("A", saga?.CurrentStep);
     Assert.Equal("given", saga?.Data.GetProperty("trace")[0].GetString());
-    await Assert.ThrowsAsync<ArgumentException>(() => host.Client.StartAsync(SagaTestHost.SagaType, invalid.RootElement));
-    var error = await Assert.ThrowsAsync<ArgumentException>(() => host.Client.StartAsync(SagaTestHost.SagaType, rejected.RootElement));
+    await Assert.ThrowsAsync<ArgumentException>(() => host.Client.StartAsync(SagaTestHost.SagaType, invalid.RootElement, cancellationToken: TestContext.Current.CancellationToken));
+    var error = await Assert.ThrowsAsync<ArgumentException>(() => host.Client.StartAsync(SagaTestHost.SagaType, rejected.RootElement, cancellationToken: TestContext.Current.CancellationToken));
     Assert.StartsWith("Customer is blocked.", error.Message, StringComparison.Ordinal);
   }
 
@@ -133,7 +133,7 @@ public sealed class SagaClientTests
   {
     await using var host = SagaTestHost.Create(new SagaShape().Step("A"));
 
-    var error = await Assert.ThrowsAsync<UnknownSagaTypeException>(() => host.Client.StartAsync("missing", new TestData()));
+    var error = await Assert.ThrowsAsync<UnknownSagaTypeException>(() => host.Client.StartAsync("missing", new TestData(), cancellationToken: TestContext.Current.CancellationToken));
     Assert.Equal("missing", error.SagaType);
   }
 
@@ -146,18 +146,18 @@ public sealed class SagaClientTests
     Assert.Equal(SagaStatus.Waiting, waiting.Status);
     Assert.Equal("B", waiting.CurrentStep);
 
-    Assert.Equal(CancellationRequestResult.Requested, await host.Client.CancelAsync(id));
+    Assert.Equal(CancellationRequestResult.Requested, await host.Client.CancelAsync(id, TestContext.Current.CancellationToken));
     // Due now, not when the next check was due.
     await host.RunDueAsync();
-    var saga = await host.Client.GetAsync(id);
+    var saga = await host.Client.GetAsync(id, TestContext.Current.CancellationToken);
 
     Assert.Equal(SagaStatus.Compensated, saga?.Status);
     Assert.Equal(SagaFailureKind.Cancelled, saga?.Failure?.Kind);
     Assert.True(saga?.CancellationRequested);
     Assert.Equal([StepStatus.Compensated, StepStatus.Failed], saga?.Steps.Select(s => s.Status));
     Assert.Equal(["A@1", "start:B", "undo:A@1"], host.Script.Journal);
-    Assert.Equal(CancellationRequestResult.NotCancellable, await host.Client.CancelAsync(id));
-    Assert.Equal(CancellationRequestResult.NotFound, await host.Client.CancelAsync(Guid.NewGuid()));
+    Assert.Equal(CancellationRequestResult.NotCancellable, await host.Client.CancelAsync(id, TestContext.Current.CancellationToken));
+    Assert.Equal(CancellationRequestResult.NotFound, await host.Client.CancelAsync(Guid.NewGuid(), TestContext.Current.CancellationToken));
   }
 
   [Fact]
@@ -173,12 +173,12 @@ public sealed class SagaClientTests
     };
 
     await host.RunDueAsync();
-    var afterConflict = await host.Client.GetAsync(id);
+    var afterConflict = await host.Client.GetAsync(id, TestContext.Current.CancellationToken);
     Assert.Equal(StepStatus.Succeeded, afterConflict?.Steps[0].Status);
     Assert.Single(afterConflict!.Steps);
 
     await host.RunDueAsync();
-    var saga = await host.Client.GetAsync(id);
+    var saga = await host.Client.GetAsync(id, TestContext.Current.CancellationToken);
     Assert.Equal(SagaStatus.Compensated, saga?.Status);
     Assert.Equal(SagaFailureKind.Cancelled, saga?.Failure?.Kind);
     Assert.Equal(["A@1", "B@1", "undo:A@1"], host.Script.Journal);

@@ -21,7 +21,7 @@ public sealed class StepExecutionTests
     Assert.Equal(1, host.Runs);
     Assert.Equal(["completed:Completed"], host.Script.Finished);
 
-    var history = await host.Client.GetHistoryAsync(id);
+    var history = await host.Client.GetHistoryAsync(id, TestContext.Current.CancellationToken);
     Assert.Equal(
       [
         SagaEventType.Created, SagaEventType.Started,
@@ -52,7 +52,7 @@ public sealed class StepExecutionTests
     Assert.Equal(["A", "B"], saga.Data.GetProperty("trace").EnumerateArray().Select(e => e.GetString()));
     Assert.Equal(0, saga.Steps[1].Attempt);
 
-    var retries = (await host.Client.GetHistoryAsync(id)).Where(h => h.EventType == SagaEventType.StepRetryScheduled).ToArray();
+    var retries = (await host.Client.GetHistoryAsync(id, TestContext.Current.CancellationToken)).Where(h => h.EventType == SagaEventType.StepRetryScheduled).ToArray();
     Assert.Equal(2, retries.Length);
     Assert.Contains("Service unavailable", retries[0].Details);
   }

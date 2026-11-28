@@ -8,7 +8,7 @@ namespace NativeOrchestrator;
 /// </summary>
 internal sealed class SagaRegistry
 {
-  private readonly Dictionary<string, ISagaRuntime> _runtimes = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, ISagaRuntime> _runtimes = [with(StringComparer.Ordinal)];
 
   public SagaRegistry(IEnumerable<SagaRegistration> registrations, IServiceProvider services)
   {

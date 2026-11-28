@@ -40,5 +40,5 @@ public sealed class SagaOptions
   public RetryOptions CompensationRetry { get; set; } = new() { MaxAttempts = 10 };
 
   /// <summary>Per-step overrides, by step name (case-insensitive).</summary>
-  public Dictionary<string, StepOptions> Steps { get; } = new(StringComparer.OrdinalIgnoreCase);
+  public Dictionary<string, StepOptions> Steps { get; } = [with(StringComparer.OrdinalIgnoreCase)];
 }

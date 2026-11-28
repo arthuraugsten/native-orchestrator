@@ -137,7 +137,7 @@ public sealed class SagaRecord
       FailureStep = failureStep,
       Error = error,
       Version = version,
-      _steps = steps.OrderBy(s => s.StepIndex).ToList(),
+      _steps = [.. steps.OrderBy(s => s.StepIndex)],
     };
   }
 
@@ -324,7 +324,7 @@ public sealed class SagaRecord
   internal SagaRecord Clone()
   {
     var clone = (SagaRecord)MemberwiseClone();
-    clone._steps = new List<StepRecord>(_steps.Count);
+    clone._steps = [with(_steps.Count)];
     foreach (var step in _steps)
       clone._steps.Add(step.Clone());
     return clone;

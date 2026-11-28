@@ -24,8 +24,8 @@ internal sealed class SagaScheduler : BackgroundService
   private readonly ILogger<SagaScheduler> _logger;
 
   // Per schedule: occurrences up to this time have been handled by this instance.
-  private readonly Dictionary<string, DateTimeOffset> _handledUntil = new(StringComparer.Ordinal);
-  private readonly Dictionary<string, CronExpression> _parsed = new(StringComparer.Ordinal);
+  private readonly Dictionary<string, DateTimeOffset> _handledUntil = [with(StringComparer.Ordinal)];
+  private readonly Dictionary<string, CronExpression> _parsed = [with(StringComparer.Ordinal)];
 
   public SagaScheduler(
     SagaScheduleRegistry registry,

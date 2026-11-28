@@ -47,7 +47,7 @@ public sealed class SagaSchedulerTests
 
     Assert.Equal(1, await first.RunDueAsync());
     Assert.Equal(0, await second.RunDueAsync());
-    var existing = await first.Client.StartAsync(SagaTestHost.SagaType, new TestData(), $"schedule:{Schedule}:20260101T010000Z");
+    var existing = await first.Client.StartAsync(SagaTestHost.SagaType, new TestData(), $"schedule:{Schedule}:20260101T010000Z", TestContext.Current.CancellationToken);
     Assert.Equal(SagaStartOutcome.Duplicate, existing.Outcome);
   }
 

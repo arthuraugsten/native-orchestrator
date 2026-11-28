@@ -12,7 +12,7 @@ public sealed class HttpPollingSagaStepTests
   {
     var carrier = new FakeCarrier { PendingChecks = 1 };
     await using var host = CreateHost(carrier);
-    var started = await host.Client.StartAsync("label", new TestData());
+    var started = await host.Client.StartAsync("label", new TestData(), cancellationToken: TestContext.Current.CancellationToken);
 
     var saga = await host.RunUntilFinishedAsync(started.SagaId);
 
@@ -31,7 +31,7 @@ public sealed class HttpPollingSagaStepTests
   {
     var carrier = new FakeCarrier { StartStatus = HttpStatusCode.UnprocessableEntity };
     await using var host = CreateHost(carrier);
-    var started = await host.Client.StartAsync("label", new TestData());
+    var started = await host.Client.StartAsync("label", new TestData(), cancellationToken: TestContext.Current.CancellationToken);
 
     var saga = await host.RunUntilFinishedAsync(started.SagaId);
 
@@ -45,13 +45,13 @@ public sealed class HttpPollingSagaStepTests
   {
     var carrier = new FakeCarrier { FailingChecks = 1 };
     await using var host = CreateHost(carrier);
-    var started = await host.Client.StartAsync("label", new TestData());
+    var started = await host.Client.StartAsync("label", new TestData(), cancellationToken: TestContext.Current.CancellationToken);
 
     var saga = await host.RunUntilFinishedAsync(started.SagaId);
 
     Assert.Equal(SagaStatus.Completed, saga.Status);
     Assert.Equal(3, carrier.Requests.Count);
-    Assert.Contains(await host.Client.GetHistoryAsync(started.SagaId), h => h.EventType == SagaEventType.StepRetryScheduled);
+    Assert.Contains(await host.Client.GetHistoryAsync(started.SagaId, TestContext.Current.CancellationToken), h => h.EventType == SagaEventType.StepRetryScheduled);
   }
 
   private static SagaTestHost CreateHost(FakeCarrier carrier) =>

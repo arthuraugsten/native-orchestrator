@@ -24,7 +24,7 @@ public sealed class PollingTests
       host.Script.Timeline.Select(t => (t.At - SagaTestHost.Start).TotalMinutes));
     Assert.Equal(5, saga.Steps[0].CheckCount);
     Assert.Equal(["Export"], saga.Data.GetProperty("trace").EnumerateArray().Select(e => e.GetString()));
-    Assert.Single(await host.Client.GetHistoryAsync(id), h => h.EventType == SagaEventType.StepWaiting);
+    Assert.Single(await host.Client.GetHistoryAsync(id, TestContext.Current.CancellationToken), h => h.EventType == SagaEventType.StepWaiting);
   }
 
   [Fact]
@@ -108,7 +108,7 @@ public sealed class PollingTests
     Assert.Equal(["undo:Charge@1", "undo:Reserve@1"], host.Script.Journal.Where(e => e.StartsWith("undo:", StringComparison.Ordinal)));
     // The last check is due exactly at the timeout, which then fails the step.
     Assert.Equal(TimeSpan.FromHours(2), saga.Steps[2].CompletedAtUtc - saga.Steps[2].StartedAtUtc);
-    Assert.Contains(await host.Client.GetHistoryAsync(id), h => h.EventType == SagaEventType.StepTimedOut);
+    Assert.Contains(await host.Client.GetHistoryAsync(id, TestContext.Current.CancellationToken), h => h.EventType == SagaEventType.StepTimedOut);
   }
 
   [Fact]
