@@ -29,5 +29,5 @@ public sealed class SystemTextJsonSagaSerializer : ISagaSerializer
       ?? throw new InvalidOperationException($"The stored {typeof(T).Name} is null.");
   }
 
-  private JsonTypeInfo<T> GetTypeInfo<T>() => (JsonTypeInfo<T>)_options.GetTypeInfo(typeof(T));
+  private JsonTypeInfo<T> GetTypeInfo<T>() => _options.GetTypeInfo<T>();
 }

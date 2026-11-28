@@ -25,7 +25,7 @@ internal sealed class SagaRuntime<TSaga, TData> : ISagaRuntime
     saga.InvokeConfigure(builder);
     Steps = builder.Build();
 
-    _stepsByName = new Dictionary<string, StepDefinition>(StringComparer.OrdinalIgnoreCase);
+    _stepsByName = [with(StringComparer.OrdinalIgnoreCase)];
 
     foreach (var step in Steps)
       _stepsByName.Add(step.Name, step);

@@ -52,7 +52,7 @@ public sealed class InMemorySagaStore : ISagaRepository, ISagaWorkQueue
   public Task<IReadOnlyList<SagaHistoryEntry>> GetHistoryAsync(Guid sagaId, CancellationToken cancellationToken)
   {
     lock (_lock)
-      return Task.FromResult<IReadOnlyList<SagaHistoryEntry>>(_history.Where(h => h.SagaId == sagaId).ToArray());
+      return Task.FromResult<IReadOnlyList<SagaHistoryEntry>>([.. _history.Where(h => h.SagaId == sagaId)]);
   }
 
   /// <inheritdoc />

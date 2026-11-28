@@ -40,7 +40,7 @@ public sealed class SqlServerIntegrationTests
     Assert.True(saga.CompletedAtUtc - saga.StartedAtUtc >= TimeSpan.FromHours(14));
     Assert.Equal(["Request", "Export", "Publish"], saga.Steps.Select(s => s.Name));
     Assert.Equal(["Request", "Export", "Publish"], saga.Data.GetProperty("trace").EnumerateArray().Select(e => e.GetString()));
-    var history = await host.Client.GetHistoryAsync(id);
+    var history = await host.Client.GetHistoryAsync(id, TestContext.Current.CancellationToken);
     Assert.Equal(SagaEventType.Created, history[0].EventType);
     Assert.Equal(SagaEventType.Completed, history[^1].EventType);
 

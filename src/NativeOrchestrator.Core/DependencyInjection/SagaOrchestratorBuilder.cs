@@ -11,8 +11,8 @@ public sealed class SagaOrchestratorBuilder
   private const int MaxSagaNameLength = 100;
 
   private readonly IConfiguration? _configuration;
-  private readonly HashSet<string> _sagaNames = new(StringComparer.Ordinal);
-  private readonly HashSet<string> _scheduleNames = new(StringComparer.Ordinal);
+  private readonly HashSet<string> _sagaNames = [with(StringComparer.Ordinal)];
+  private readonly HashSet<string> _scheduleNames = [with(StringComparer.Ordinal)];
 
   internal SagaOrchestratorBuilder(IServiceCollection services, IConfiguration? configuration)
   {

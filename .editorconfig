@@ -16,9 +16,10 @@ csharp_style_namespace_declarations = file_scoped:warning
 csharp_new_line_before_open_brace = all
 
 # No primary constructors on classes or structs: use a standard constructor that assigns
-# private readonly fields. (Positional records are fine.) This turns off the IDE0290
-# "Use primary constructor" suggestion.
-csharp_style_prefer_primary_constructors = false:warning
+# private readonly fields. (Positional records are fine.) Never suggest converting to one:
+# the option turns IDE0290 off, and the severity hides it in the IDE too.
+csharp_style_prefer_primary_constructors = false:none
+dotnet_diagnostic.IDE0290.severity = none
 
 # Field references are not qualified with 'this.'.
 dotnet_style_qualification_for_field = false:warning
@@ -63,7 +64,3 @@ dotnet_naming_rule.private_fields_underscore_camel_case.severity = warning
 # EF Core migrations are generated code.
 [src/NativeOrchestrator.Data.SqlServer/Migrations/**.cs]
 generated_code = true
-
-# Tests call the client against in-memory or local stores; passing the test's cancellation token to every call adds noise.
-[tests/**.cs]
-dotnet_diagnostic.xUnit1051.severity = suggestion

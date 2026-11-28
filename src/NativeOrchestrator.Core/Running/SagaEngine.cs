@@ -42,7 +42,7 @@ internal sealed class SagaEngine
     _scopes = scopes;
     _sagaOptions = sagaOptions;
     _options = options;
-    _observers = observers.ToArray();
+    _observers = [.. observers];
     _diagnostics = diagnostics;
     _timeProvider = timeProvider;
     _logger = logger;
