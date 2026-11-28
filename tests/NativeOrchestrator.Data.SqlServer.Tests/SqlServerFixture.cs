@@ -15,7 +15,7 @@ namespace NativeOrchestrator.Tests;
 /// </summary>
 public sealed class SqlServerFixture : IAsyncLifetime
 {
-  private const string Image = "mcr.microsoft.com/mssql/server:2022-latest";
+  private const string Image = "mcr.microsoft.com/mssql/server:2025-latest";
 
   private MsSqlContainer? _container;
   private string? _skipReason;

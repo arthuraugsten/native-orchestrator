@@ -8,7 +8,7 @@ change is saved to a database, so a saga can run for days and survive restarts a
 - **Durable polling, retries and timeouts.** Nothing waits in memory: a saga that polls every hour for two days is a
   database row with a due time.
 - **Storage that doesn't depend on the database:** the engine depends on two interfaces, implemented on EF Core (any
-  relational provider), with SQL Server as the shipped provider.
+  relational provider), with SQL Server 2025 as the shipped provider.
 - **Built-in .NET first:** Generic Host, `BackgroundService`, options with validation, `TimeProvider`,
   System.Text.Json source generation, `IHttpClientFactory`, `[LoggerMessage]`, `Meter` and `ActivitySource`, health
   checks, EF Core and Microsoft.Extensions.Http.Resilience.
@@ -35,7 +35,7 @@ You need the .NET 11 SDK (see the repository's `global.json`) and Docker.
 
 ```sh
 cd NativeOrchestrator
-docker compose up -d                      # SQL Server 2022 on localhost:1433
+docker compose up -d                      # SQL Server 2025 on localhost:1433
 dotnet run --project src/NativeOrchestrator.App
 ```
 
@@ -236,6 +236,11 @@ Core rebuilds them from its rows with `SagaRecord.Restore(...)` and `StepRecord.
 for a store that changes sagas in memory.
 
 ## SQL Server store
+
+The store targets **SQL Server 2025** (or Azure SQL): EF Core runs at compatibility level 170, and saga data
+(`DataJson`, always a JSON object) uses the native `json` column type. Step state (`StateJson`) stays `nvarchar(max)`,
+because it can be a top-level scalar such as a string operation ID, which `json` rejects. Older SQL Server versions
+aren't supported.
 
 Three tables in the `saga` schema: `Sagas` (one row per saga, with the lease and an `int` version), `SagaSteps` and
 `SagaHistory` (append-only). A unique index on `(SagaType, CorrelationId)` makes starts idempotent, and a filtered

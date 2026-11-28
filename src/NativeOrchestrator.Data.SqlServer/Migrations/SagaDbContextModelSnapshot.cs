@@ -16,7 +16,7 @@ partial class SagaDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261127132727_InitialCreate";
+    public override string LastMigrationId => "20261128001421_InitialCreate";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -93,7 +93,7 @@ partial class SagaDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<string>("DataJson")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("json");
 
                 b.Property<string>("Error")
                     .HasColumnType("nvarchar(max)");

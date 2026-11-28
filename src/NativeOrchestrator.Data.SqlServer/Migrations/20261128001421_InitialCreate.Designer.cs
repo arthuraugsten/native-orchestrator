@@ -12,8 +12,8 @@ using NativeOrchestrator.Data.SqlServer;
 namespace NativeOrchestrator.Data.SqlServer.Migrations;
 
 [DbContext(typeof(SagaDbContext))]
-[Migration("20261127132727_InitialCreate")]
-partial class _20261127132727_InitialCreate
+[Migration("20261128001421_InitialCreate")]
+partial class _20261128001421_InitialCreate
 {
     /// <inheritdoc />
     protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -91,7 +91,7 @@ partial class _20261127132727_InitialCreate
 
                 b.Property<string>("DataJson")
                     .IsRequired()
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("json");
 
                 b.Property<string>("Error")
                     .HasColumnType("nvarchar(max)");

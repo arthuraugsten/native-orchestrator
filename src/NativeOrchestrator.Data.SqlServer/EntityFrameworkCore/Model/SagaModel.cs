@@ -25,4 +25,10 @@ internal static class SagaModel
   public const int StepNameLength = 100;
   public const int OwnerLength = 200;
   public const int EnumLength = 32;
+
+  /// <summary>SQL Server 2025's native JSON type, for saga data (always a JSON object).</summary>
+  public const string JsonColumnType = "json";
+
+  /// <summary>The compatibility level EF Core targets: SQL Server 2025 (17.x).</summary>
+  public const int CompatibilityLevel = 170;
 }

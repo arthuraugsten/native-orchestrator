@@ -1,7 +1,7 @@
-# Local SQL Server for running NativeOrchestrator.App. Start it with: docker compose up -d
+# Local SQL Server 2025 for running NativeOrchestrator.App. Start it with: docker compose up -d
 services:
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2025-latest
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "NativeOrchestrator!2026"

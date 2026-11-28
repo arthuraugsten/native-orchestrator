@@ -13,5 +13,6 @@ internal sealed class StepRecordConfiguration : IEntityTypeConfiguration<StepRec
     builder.Property(s => s.StepIndex).ValueGeneratedNever();
     builder.Property(s => s.Name).HasMaxLength(SagaModel.StepNameLength).IsRequired();
     builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(SagaModel.EnumLength);
+    // Not json: step state can be a top-level scalar (a string operation ID), which the json type rejects.
   }
 }
