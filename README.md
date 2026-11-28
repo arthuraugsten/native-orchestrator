@@ -20,7 +20,7 @@ change is saved to a database, so a saga can run for days and survive restarts a
 | `src/NativeOrchestrator.Core` | class library | Base classes (`Saga<TData>`, `SagaStep<TData>`, `PollingSagaStep<TData, TOperation>`, `HttpSagaStep<TData>`, `HttpPollingSagaStep<TData>`), the engine, the worker, `ISagaClient`, options, retry and backoff policies, and the store contracts (`ISagaRepository`, `ISagaWorkQueue`, `SagaRecord`). No database code. |
 | `src/NativeOrchestrator.Data.SqlServer` | class library | The SQL Server store: `UseSqlServer(...)`, its health check, the migrations and a locking claim query. Built on EF Core, which stays internal. |
 | `src/NativeOrchestrator.Data.InMemory` | class library | `UseInMemoryStore()`: a store in memory, for tests and local experiments. |
-| `src/NativeOrchestrator.App` | ASP.NET Core app | The orchestrator service: HTTP API, worker, two example sagas and simulated external systems. |
+| `src/NativeOrchestrator.App` | ASP.NET Core app | The orchestrator service: HTTP API, worker, the scheduled `client` saga and `IApiManagementService`, simulated in memory. |
 | `tests/NativeOrchestrator.Core.Tests` | xUnit v3 | Engine, polling, retries, compensation, options and worker, on a fake clock. |
 | `tests/NativeOrchestrator.Data.SqlServer.Tests` | xUnit v3 | The store contract and the engine against SQL Server in a Testcontainers container. |
 
@@ -41,7 +41,9 @@ dotnet run --project src/NativeOrchestrator.App
 
 In Development the app applies the migrations on startup and listens on `http://localhost:5080`. Send the requests in
 [`NativeOrchestrator.App.http`](src/NativeOrchestrator.App/NativeOrchestrator.App.http) (VS Code REST Client or Visual
-Studio): one per scenario, each with its status request.
+Studio): one per scenario, each with its status request. The `client` saga also starts by itself every 5 minutes. Its two
+operations go to `ApiManagementService`, which keeps them in memory and finishes each after a random delay of up to 20
+seconds (`ApiManagement:MaxDuration`).
 
 ### HTTP API
 
@@ -99,22 +101,20 @@ external system but before saving, the step runs again. So every step gets `cont
 ## Writing a saga
 
 ```csharp
-public sealed class CustomerOnboardingSaga : Saga<CustomerOnboardingData>
+public sealed class ClientSaga : Saga<ClientSagaData>
 {
-  protected override void Configure(ISagaBuilder<CustomerOnboardingData> saga) => saga
-    .Step<ReserveAccountStep>()                                                  // HttpSagaStep, compensates by deleting
-    .Step<VerifyIdentityStep>(configure: step => step.Timeout = TimeSpan.FromDays(2)) // HttpPollingSagaStep
-    .Step<ActivateAccountStep>()
-    .Step<SendWelcomeEmailStep>(configure: step => step.ContinueOnError = true);
+  protected override void Configure(ISagaBuilder<ClientSagaData> saga) => saga
+    .Step<ProvisionClientStep>()                                                 // PollingSagaStep, compensates by reverting
+    .Step<SynchronizeClientStep>(configure: step => step.Timeout = TimeSpan.FromHours(6)); // compensates by reverting
 
-  protected override string? Validate(CustomerOnboardingData data) =>
-    string.IsNullOrWhiteSpace(data.Email) ? "email is required." : null;
+  protected override string? Validate(ClientSagaData data) =>
+    string.IsNullOrWhiteSpace(data.RunName) ? "runName is required." : null;
 }
 ```
 
 ```csharp
 builder.Services.AddSagaOrchestrator(configuration.GetSection("SagaOrchestrator"))
-  .AddSaga<CustomerOnboardingSaga, CustomerOnboardingData>("customer-onboarding")
+  .AddSaga<ClientSaga, ClientSagaData>("client")
   .UseSqlServer(configuration.GetSection("SagaOrchestrator:SqlServer"),
     sql => sql.ConnectionString = configuration.GetConnectionString("Sagas")!)
   .ConfigureSerializer(json => json.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
@@ -134,8 +134,8 @@ first. After fixing what it left behind, release it in SQL:
 start as soon as one fails instead, set `FailedBlocksNewStarts` to `false` (in code or as
 `Sagas:{name}:FailedBlocksNewStarts`); it is read when the saga finishes. The store enforces all this with a unique key,
 so it holds across instances and concurrent starts. A repeated correlation ID is checked first and still returns
-`Duplicate`. `SingleInstance` applies to sagas started after it changes. In the app, `report-generation` is
-single-instance, and a failed report blocks the next one.
+`Duplicate`. `SingleInstance` applies to sagas started after it changes. In the app, `client` is
+single-instance with `FailedBlocksNewStarts` off, so a failed run doesn't stop the next scheduled one.
 
 | Base class | Use it for | You implement |
 | --- | --- | --- |
@@ -152,11 +152,11 @@ The HTTP base classes treat `408`, `429` and `5xx` as transient (retried) and ot
 A saga can also start on a CRON schedule, declared at setup:
 
 ```csharp
-.AddSaga<ReportGenerationSaga, ReportGenerationData>("report-generation", saga => saga.SingleInstance = true)
-.AddSchedule("nightly-sales", "report-generation", "0 2 * * *", occurrence => new ReportGenerationData
+.AddSaga<ClientSaga, ClientSagaData>("client", saga => saga.SingleInstance = true)
+.AddSchedule("client-every-5-minutes", "client", "*/5 * * * *", occurrence => new ClientSagaData
 {
-  ReportName = $"Daily sales {occurrence.ScheduledAtUtc.AddDays(-1):yyyy-MM-dd}",
-  Recipients = ["finance@example.test"],
+  RunName = $"client-{occurrence.ScheduledAtUtc:yyyyMMdd-HHmm}",
+  ScheduledAtUtc = occurrence.ScheduledAtUtc,
 }, schedule => schedule.TimeZone = "Europe/Lisbon")
 ```
 
@@ -179,8 +179,8 @@ through the saga's `Validate`.
 
 Nothing is stored for the schedule itself, so there is no extra table. The scheduler reads its options at every wake-up
 (at least once a minute), so changing `Schedules:{name}` in configuration applies without a restart. An invalid
-expression or time zone, an unknown saga or the wrong data type fails at startup. In the app, `nightly-sales` starts
-`report-generation` at 02:00 UTC, and every 2 minutes in Development.
+expression or time zone, an unknown saga or the wrong data type fails at startup. In the app, `client-every-5-minutes`
+starts `client` every 5 minutes. Its operations can take hours, so while one run is active the occurrences are skipped.
 
 ## Configuration
 
@@ -199,14 +199,14 @@ Options are bound from configuration and validated at startup. Each level overri
     "CompensationRetry": { "MaxAttempts": 10 }
   },
   "Sagas": {
-    "customer-onboarding": {                   // SagaOptions for one saga
-      "MaxDuration": "3.00:00:00", "SingleInstance": false, "FailedBlocksNewStarts": true,
-      "Steps": { "VerifyIdentity": { "Timeout": "2.00:00:00", "Polling": { "InitialDelay": "00:01:00", "MaxDelay": "00:30:00" } } }
+    "client": {                                // SagaOptions for one saga
+      "MaxDuration": "1.00:00:00", "StepTimeout": "06:00:00", "SingleInstance": true, "FailedBlocksNewStarts": false,
+      "Steps": { "SynchronizeClient": { "Timeout": "06:00:00", "Polling": { "InitialDelay": "00:01:00", "MaxDelay": "00:15:00" } } }
     }
   },
   "Schedules": {
-    "nightly-sales": {                         // SagaScheduleOptions for one schedule; configuration overrides code
-      "Cron": "0 2 * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00"
+    "client-every-5-minutes": {                // SagaScheduleOptions for one schedule; configuration overrides code
+      "Cron": "*/5 * * * *", "TimeZone": "UTC", "Enabled": true, "MisfireThreshold": "01:00:00"
     }
   }
 }
