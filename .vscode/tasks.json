@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "detail": "Builds the solution (Debug).",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/NativeOrchestrator.slnx", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "sql-server: up",
+      "detail": "Starts the local SQL Server container from compose.yaml (no-op if it is already running).",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "-f", "${workspaceFolder}/compose.yaml", "up", "-d", "--wait"],
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare app",
+      "detail": "Starts SQL Server, then builds.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["sql-server: up", "build"],
+      "problemMatcher": []
+    }
+  ]
+}

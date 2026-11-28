@@ -16,6 +16,7 @@ internal sealed class SqlServerClaimStrategy : ISagaClaimStrategy
   {
     ArgumentNullException.ThrowIfNull(context);
     ArgumentNullException.ThrowIfNull(request);
+
     return context.Database.ExecuteSqlRawAsync(
       ClaimSql,
       [
@@ -32,6 +33,7 @@ internal sealed class SqlServerClaimStrategy : ISagaClaimStrategy
   {
     // Status values are enum names stored as strings, so they are safe to inline.
     var active = string.Join(", ", SagaStatuses.Active.Select(status => $"N'{status}'"));
+
     return $"""
       WITH due AS (
         SELECT TOP (@maxCount) [{SagaModel.LeaseOwner}], [{SagaModel.LeaseToken}], [{SagaModel.LeaseExpiresAtUtc}]

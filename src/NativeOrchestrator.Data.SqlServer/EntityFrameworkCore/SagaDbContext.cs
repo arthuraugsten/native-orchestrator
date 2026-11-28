@@ -28,7 +28,9 @@ internal sealed class SagaDbContext : DbContext
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     ArgumentNullException.ThrowIfNull(modelBuilder);
+
     modelBuilder.HasDefaultSchema(SagaModel.Schema);
+
     modelBuilder.ApplyConfiguration(new SagaRecordConfiguration());
     modelBuilder.ApplyConfiguration(new StepRecordConfiguration());
     modelBuilder.ApplyConfiguration(new SagaHistoryEntryConfiguration());

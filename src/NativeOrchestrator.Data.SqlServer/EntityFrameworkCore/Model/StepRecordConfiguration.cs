@@ -8,8 +8,10 @@ internal sealed class StepRecordConfiguration : IEntityTypeConfiguration<StepRec
   public void Configure(EntityTypeBuilder<StepRecord> builder)
   {
     builder.ToTable(SagaModel.StepsTable, SagaModel.Schema);
-    builder.Property<Guid>(SagaModel.StepSagaId);
+
     builder.HasKey(SagaModel.StepSagaId, nameof(StepRecord.StepIndex));
+
+    builder.Property<Guid>(SagaModel.StepSagaId);
     builder.Property(s => s.StepIndex).ValueGeneratedNever();
     builder.Property(s => s.Name).HasMaxLength(SagaModel.StepNameLength).IsRequired();
     builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(SagaModel.EnumLength);

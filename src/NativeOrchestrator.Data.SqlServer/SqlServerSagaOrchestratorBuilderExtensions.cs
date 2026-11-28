@@ -17,7 +17,9 @@ public static class SqlServerSagaOrchestratorBuilderExtensions
   {
     ArgumentNullException.ThrowIfNull(builder);
     ArgumentNullException.ThrowIfNull(configure);
+
     builder.Services.AddOptions<SqlServerSagaStoreOptions>().Configure(configure);
+
     return AddSqlServer(builder);
   }
 
@@ -32,19 +34,24 @@ public static class SqlServerSagaOrchestratorBuilderExtensions
   {
     ArgumentNullException.ThrowIfNull(builder);
     ArgumentNullException.ThrowIfNull(configuration);
+
     var options = builder.Services.AddOptions<SqlServerSagaStoreOptions>().Bind(configuration);
+
     if (configure is not null)
       options.Configure(configure);
+
     return AddSqlServer(builder);
   }
 
   private static SagaOrchestratorBuilder AddSqlServer(SagaOrchestratorBuilder builder)
   {
     var services = builder.Services;
+
     services.AddOptions<SqlServerSagaStoreOptions>().ValidateOnStart();
     services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<SqlServerSagaStoreOptions>, SqlServerSagaStoreOptionsValidator>());
+
     services.AddOptions<EntityFrameworkSagaStoreOptions>()
-      .Configure<IOptions<SqlServerSagaStoreOptions>>((store, sql) => store.ApplyMigrationsOnStartup = sql.Value.ApplyMigrationsOnStartup);
+    .Configure<IOptions<SqlServerSagaStoreOptions>>((store, sql) => store.ApplyMigrationsOnStartup = sql.Value.ApplyMigrationsOnStartup);
     services.TryAddSingleton<ISagaClaimStrategy>(provider =>
       provider.GetRequiredService<IOptions<SqlServerSagaStoreOptions>>().Value.UseLockingClaim
         ? new SqlServerClaimStrategy()

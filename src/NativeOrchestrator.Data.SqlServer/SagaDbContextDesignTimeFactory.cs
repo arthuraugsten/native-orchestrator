@@ -12,10 +12,12 @@ internal sealed class SagaDbContextDesignTimeFactory : IDesignTimeDbContextFacto
   public SagaDbContext CreateDbContext(string[] args)
   {
     var builder = new DbContextOptionsBuilder<SagaDbContext>();
+
     SagaSqlServerDbContextOptions.Configure(builder, new SqlServerSagaStoreOptions
     {
       ConnectionString = "Server=localhost;Database=NativeOrchestrator;Integrated Security=true;TrustServerCertificate=true",
     });
+
     return new SagaDbContext(builder.Options);
   }
 }

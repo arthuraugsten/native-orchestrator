@@ -21,7 +21,9 @@ internal sealed class DefaultClaimStrategy : ISagaClaimStrategy
   {
     ArgumentNullException.ThrowIfNull(context);
     ArgumentNullException.ThrowIfNull(request);
+
     var now = request.NowUtc;
+
     return context.Sagas
       .Where(s => Active.Contains(s.Status)
         && s.NextRunAtUtc <= now

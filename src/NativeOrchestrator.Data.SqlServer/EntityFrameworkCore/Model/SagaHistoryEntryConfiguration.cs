@@ -8,8 +8,11 @@ internal sealed class SagaHistoryEntryConfiguration : IEntityTypeConfiguration<S
   public void Configure(EntityTypeBuilder<SagaHistoryEntry> builder)
   {
     builder.ToTable(SagaModel.HistoryTable, SagaModel.Schema);
+
+    // The key is a shadow property, so it must be declared before HasKey can use it.
     builder.Property<long>(SagaModel.HistoryId).ValueGeneratedOnAdd();
     builder.HasKey(SagaModel.HistoryId);
+
     builder.Property(h => h.SagaType).HasMaxLength(SagaModel.SagaTypeLength).IsRequired();
     builder.Property(h => h.EventType).HasConversion<string>().HasMaxLength(SagaModel.EnumLength);
     builder.Property(h => h.StepName).HasMaxLength(SagaModel.StepNameLength);
@@ -18,6 +21,7 @@ internal sealed class SagaHistoryEntryConfiguration : IEntityTypeConfiguration<S
       .WithMany()
       .HasForeignKey(h => h.SagaId)
       .OnDelete(DeleteBehavior.Cascade);
+
     builder.HasIndex(h => h.SagaId);
   }
 }

@@ -19,7 +19,9 @@ internal sealed class SagaDatabaseInitializer : ISagaStoreInitializer
   {
     if (!_options.ApplyMigrationsOnStartup)
       return;
+
     await using var context = await _contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
     await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
   }
 }

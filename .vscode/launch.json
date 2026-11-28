@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "App (Debug)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "prepare app",
+      "program": "${workspaceFolder}/src/NativeOrchestrator.App/bin/Debug/net11.0/NativeOrchestrator.App.dll",
+      "cwd": "${workspaceFolder}/src/NativeOrchestrator.App",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5080"
+      },
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "justMyCode": true,
+      "requireExactSource": true
+    },
+    {
+      "name": "Attach to process",
+      "type": "coreclr",
+      "request": "attach"
+    }
+  ]
+}
