@@ -40,8 +40,9 @@ internal sealed class SagaRun
 
   public DateTimeOffset Now => _timeProvider.GetUtcNow();
 
+  /// <summary>Adds a history entry; <paramref name="details"/> is truncated to the maximum error length.</summary>
   public void Record(SagaEventType eventType, string? stepName = null, string? details = null) =>
-    PendingHistory.Add(new SagaHistoryEntry(Saga.Id, Saga.SagaType, Now, eventType, stepName, details));
+    PendingHistory.Add(new SagaHistoryEntry(Saga.Id, Saga.SagaType, Now, eventType, stepName, details is null ? null : Truncate(details)));
 
   public string Truncate(string message) =>
     message.Length <= _maxErrorLength ? message : string.Concat(message.AsSpan(0, _maxErrorLength - 3), "...");

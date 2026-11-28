@@ -14,7 +14,7 @@ internal sealed class SagaRecordConfiguration : IEntityTypeConfiguration<SagaRec
     builder.Property(s => s.CorrelationId).HasMaxLength(SagaModel.CorrelationIdLength);
     builder.Property(s => s.ActiveInstanceKey).HasMaxLength(SagaModel.ActiveInstanceKeyLength);
     builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(SagaModel.EnumLength);
-    builder.Property(s => s.DataJson).IsRequired();
+    builder.Property(s => s.DataJson).HasColumnType(SagaModel.JsonColumnType).IsRequired();
     builder.Property(s => s.FailureKind).HasConversion<string>().HasMaxLength(SagaModel.EnumLength);
     builder.Property(s => s.FailureStep).HasMaxLength(SagaModel.StepNameLength);
     builder.Property(s => s.Version).IsConcurrencyToken();

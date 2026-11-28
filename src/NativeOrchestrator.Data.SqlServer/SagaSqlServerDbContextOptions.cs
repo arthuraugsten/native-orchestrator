@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace NativeOrchestrator.Data.SqlServer;
 
-/// <summary>Configures <see cref="SagaDbContext"/> for SQL Server: the provider, these migrations, timeouts and retries.</summary>
+/// <summary>
+/// Configures <see cref="SagaDbContext"/> for SQL Server 2025: the provider and compatibility level, these migrations,
+/// timeouts and retries.
+/// </summary>
 internal static class SagaSqlServerDbContextOptions
 {
   /// <summary>Configures the context options.</summary>
@@ -14,6 +17,7 @@ internal static class SagaSqlServerDbContextOptions
     ArgumentNullException.ThrowIfNull(options);
     return builder.UseSqlServer(options.ConnectionString, sql =>
     {
+      sql.UseCompatibilityLevel(SagaModel.CompatibilityLevel);
       sql.MigrationsAssembly(typeof(SagaSqlServerDbContextOptions).Assembly.GetName().Name);
       sql.MigrationsHistoryTable(SagaModel.MigrationsHistoryTable, SagaModel.Schema);
       sql.CommandTimeout((int)Math.Ceiling(options.CommandTimeout.TotalSeconds));

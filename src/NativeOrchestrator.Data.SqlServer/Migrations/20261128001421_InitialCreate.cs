@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NativeOrchestrator.Data.SqlServer.Migrations;
 
 /// <inheritdoc />
-public partial class _20261127132727_InitialCreate : Migration
+public partial class _20261128001421_InitialCreate : Migration
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
@@ -25,7 +25,7 @@ public partial class _20261127132727_InitialCreate : Migration
                 ActiveInstanceKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                 Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                 CurrentStepIndex = table.Column<int>(type: "int", nullable: false),
-                DataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                DataJson = table.Column<string>(type: "json", nullable: false),
                 CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                 UpdatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                 StartedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
