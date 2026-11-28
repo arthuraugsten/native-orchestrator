@@ -77,18 +77,21 @@ compose.yaml                   # local SQL Server
 docs/index.html                # interactive docs (rule 12): principles, workflows, diagrams, dependencies, examples
 src/
   NativeOrchestrator.Core/                  # no database or ASP.NET Core dependency
-    Sagas/        base classes: Saga, SagaStep, PollingSagaStep, HttpSagaStep, HttpPollingSagaStep, SagaHttp
-    Building/     ISagaBuilder, SagaBuilder, StepDefinition, EffectiveStepOptions, SagaRuntime, SagaRegistry
-    Context/      StepContext, SagaContext
-    Execution/    SagaWorker, SagaEngine, SagaStepExecutor, CompensationRunner, LeaseKeeper, StepInvoker, SagaRun, SagaWorkSignal
-    Persistence/  ISagaRepository, ISagaWorkQueue, ISagaStoreInitializer, records, exceptions, serializer
-    Policies/     IRetryPolicy, DefaultRetryPolicy, IBackoffStrategy, ExponentialBackoffStrategy
-    Options/      SagaOrchestratorOptions, SagaOptions, StepOptions, RetryOptions, PollingOptions, validators
-    Results/      StepResult, PollResult, statuses, SagaSnapshot, exceptions
-    Client/       ISagaClient, SagaClient
-    Scheduling/   CronExpression, SagaScheduler, SagaScheduleOptions, SagaScheduleRegistry, ScheduledOccurrence
-    Observability/ SagaLog, SagaDiagnostics, ISagaLifecycleObserver
-    DependencyInjection/  AddSagaOrchestrator, SagaOrchestratorBuilder
+    Sagas/               Saga, SagaContext, ISagaBuilder, SagaOptions, statuses, SagaFailure
+    Steps/               SagaStep, StepContext, StepResult, StepOptions, StepStatus, SagaStepExecutor, StepInvoker
+      Polling/           PollingSagaStep, PollResult, PollState, PollingOptions
+      Http/              HttpSagaStep, HttpPollingSagaStep, HttpPollingOperation, SagaHttp
+    Compensation/        CompensationRunner
+    Retries/             IRetryPolicy, DefaultRetryPolicy, IBackoffStrategy, ExponentialBackoffStrategy, RetryOptions
+    Leasing/             LeaseKeeper, SagaLease, ClaimedSaga, SagaClaimRequest
+    Running/             SagaWorker, SagaEngine, SagaRun, SagaWorkSignal
+    Storage/             ISagaRepository, ISagaWorkQueue, ISagaStoreInitializer, SagaRecord, StepRecord, history, exceptions
+    Client/              ISagaClient, SagaClient, SagaStartResult, SagaSnapshot, UnknownSagaTypeException
+    Registry/            SagaRegistration, SagaRegistry, SagaRuntime (AddSaga registrations to runnable sagas)
+    Scheduling/          CronExpression, SagaScheduler, SagaScheduleOptions, SagaScheduleRegistry, ScheduledOccurrence
+    Serialization/       ISagaSerializer, SystemTextJsonSagaSerializer, SagaSerializerOptions
+    Observability/       SagaLog, SagaDiagnostics, ISagaLifecycleObserver
+    DependencyInjection/ AddSagaOrchestrator, SagaOrchestratorBuilder, SagaOrchestratorOptions
   NativeOrchestrator.Data.InMemory/         # InMemorySagaStore, UseInMemoryStore (tests and local experiments)
   NativeOrchestrator.Data.SqlServer/        # UseSqlServer, options, health check, SqlServerClaimStrategy
     EntityFrameworkCore/  SagaDbContext, mapping (Model/), EntityFrameworkSagaStore, claim strategies (internal)
@@ -169,7 +172,8 @@ update [`docs/index.html`](docs/index.html) in the same change (rule 12).
   `.http` file.
 - **Add a schedule:** `AddSchedule<TData>("name", "saga", "cron", occurrence => data)` after the saga's `AddSaga`;
   optional `Schedules:{name}` configuration. Keep the name stable: it is part of each occurrence's correlation ID.
-- **Add a kind of step:** a base class in `Core/Sagas/` deriving from `SagaStep<TData>` (as `PollingSagaStep` does).
+- **Add a kind of step:** a base class in its own folder under `Core/Steps/` deriving from `SagaStep<TData>` (as
+  `Steps/Polling/PollingSagaStep` does).
   Engine changes are only needed if it needs a new `StepResult` kind.
 - **Add an option:** a property on the options class, a check in its validator, README configuration docs, tests for
   precedence and validation.

@@ -34,7 +34,7 @@ internal sealed class SagaWorker : BackgroundService
     ArgumentNullException.ThrowIfNull(registry);
     _queue = queue;
     _engine = engine;
-    _initializers = initializers.ToArray();
+    _initializers = [.. initializers];
     _signal = signal;
     _options = options.Value;
     _timeProvider = timeProvider;
@@ -60,7 +60,7 @@ internal sealed class SagaWorker : BackgroundService
       {
         await slots.WaitAsync(stoppingToken).ConfigureAwait(false);
         var free = 1;
-        while (free < _options.MaxConcurrency && slots.Wait(0))
+        while (free < _options.MaxConcurrency && slots.Wait(0, stoppingToken))
           free++;
 
         IReadOnlyList<ClaimedSaga> claimed;
